@@ -14,7 +14,7 @@ const AdminLoginPage = () => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsLoading(true);
-    
+
     // Simulate API call
     setTimeout(() => {
       setIsLoading(false);
@@ -30,7 +30,7 @@ const AdminLoginPage = () => {
       className="relative min-h-screen pt-20 flex items-center justify-center"
     >
       <FloatingShapes />
-      
+
       <div className="relative z-10 w-full max-w-md px-6">
         <motion.div
           initial={{ y: 50, opacity: 0, scale: 0.9 }}
@@ -47,8 +47,8 @@ const AdminLoginPage = () => {
               >
                 <FiUser className="w-10 h-10 text-white" />
               </motion.div>
-              <h2 className="text-2xl font-bold text-white mb-2">Admin Login</h2>
-              <p className="text-white/70">Access the election management dashboard</p>
+              <h2 className="text-2xl font-bold text-[#222] mb-2">Admin Login</h2>
+              <p className="text-[#222]/70">Access the election management dashboard</p>
             </div>
 
             <form onSubmit={handleSubmit} className="space-y-6">
@@ -57,16 +57,16 @@ const AdminLoginPage = () => {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.4, duration: 0.6 }}
               >
-                <label className="block text-white/80 text-sm font-medium mb-2">
+                <label className="block text-[#222]/80 text-sm font-medium mb-2">
                   Email Address
                 </label>
                 <div className="relative">
-                  <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+                  <FiUser className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#222]/50 w-5 h-5" />
                   <input
                     type="email"
                     value={formData.email}
                     onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-                    className="w-full pl-12 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all duration-300"
+                    className="w-full pl-12 pr-4 py-3 bg-[#222]/10 border border-[#222]/20 rounded-lg text-[#222] placeholder-[#222]/50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all duration-300"
                     placeholder="Enter your email"
                     required
                   />
@@ -78,23 +78,23 @@ const AdminLoginPage = () => {
                 animate={{ x: 0, opacity: 1 }}
                 transition={{ delay: 0.5, duration: 0.6 }}
               >
-                <label className="block text-white/80 text-sm font-medium mb-2">
+                <label className="block text-[#222]/80 text-sm font-medium mb-2">
                   Password
                 </label>
                 <div className="relative">
-                  <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50 w-5 h-5" />
+                  <FiLock className="absolute left-3 top-1/2 transform -translate-y-1/2 text-[#222]/50 w-5 h-5" />
                   <input
                     type={showPassword ? "text" : "password"}
                     value={formData.password}
                     onChange={(e) => setFormData({ ...formData, password: e.target.value })}
-                    className="w-full pl-12 pr-12 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all duration-300"
+                    className="w-full pl-12 pr-12 py-3 bg-[#222]/10 border border-[#222]/20 rounded-lg text-[#222] placeholder-[#222]/50 focus:outline-none focus:border-blue-400 focus:ring-2 focus:ring-blue-400/20 transition-all duration-300"
                     placeholder="Enter your password"
                     required
                   />
                   <button
                     type="button"
                     onClick={() => setShowPassword(!showPassword)}
-                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-white/50 hover:text-white transition-colors"
+                    className="absolute right-3 top-1/2 transform -translate-y-1/2 text-[#222]/50 hover:text-[#222] transition-colors"
                   >
                     {showPassword ? <FiEyeOff className="w-5 h-5" /> : <FiEye className="w-5 h-5" />}
                   </button>

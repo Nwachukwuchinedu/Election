@@ -1,4 +1,3 @@
-import React from 'react';
 import { BrowserRouter as Router, Routes, Route } from 'react-router-dom';
 import { AnimatePresence } from 'framer-motion';
 import HomePage from './pages/HomePage';
@@ -15,7 +14,7 @@ import Navigation from './components/ui/Navigation';
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-purple-900 to-slate-900 overflow-x-hidden">
+      <div className="min-h-screen bg-white overflow-x-hidden">
         <Navigation />
         <AnimatePresence mode="wait">
           <Routes>

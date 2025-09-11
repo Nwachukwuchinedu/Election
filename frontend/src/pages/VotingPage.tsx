@@ -39,15 +39,15 @@ const VotingPage = () => {
 
   const handleVote = async () => {
     if (!selectedCandidate) return;
-    
+
     setIsSubmitting(true);
-    
+
     // Simulate API call
     setTimeout(() => {
-      navigate('/vote-confirmation', { 
-        state: { 
-          candidate: candidates.find(c => c.id === selectedCandidate) 
-        } 
+      navigate('/vote-confirmation', {
+        state: {
+          candidate: candidates.find(c => c.id === selectedCandidate)
+        }
       });
     }, 2000);
   };
@@ -60,7 +60,7 @@ const VotingPage = () => {
       className="relative min-h-screen pt-20 pb-10"
     >
       <ParticleBackground />
-      
+
       <div className="relative z-10 container mx-auto px-6">
         <motion.div
           initial={{ y: 30, opacity: 0 }}
@@ -68,11 +68,11 @@ const VotingPage = () => {
           transition={{ duration: 0.6 }}
           className="text-center mb-12"
         >
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">Cast Your Vote</h1>
-          <p className="text-white/70 text-lg max-w-2xl mx-auto">
-            Select your preferred candidate for the 2024 General Election. Your vote matters and will be securely recorded.
+          <h1 className="text-4xl md:text-5xl font-bold text-[#222] mb-4">Cast Your Vote</h1>
+          <p className="text-[#222]/70 text-lg max-w-2xl mx-auto">
+            Select your preferred candidate. Your vote is secure and anonymous.
           </p>
-          
+
           <motion.div
             initial={{ scale: 0 }}
             animate={{ scale: 1 }}
@@ -90,13 +90,13 @@ const VotingPage = () => {
               key={candidate.id}
               initial={{ y: 100, opacity: 0, rotateY: -15 }}
               animate={{ y: 0, opacity: 1, rotateY: 0 }}
-              transition={{ 
-                delay: index * 0.2, 
+              transition={{
+                delay: index * 0.2,
                 duration: 0.8,
                 type: "spring",
                 stiffness: 100
               }}
-              whileHover={{ 
+              whileHover={{
                 y: -20,
                 rotateY: 5,
                 scale: 1.02,
@@ -105,12 +105,11 @@ const VotingPage = () => {
               onClick={() => setSelectedCandidate(candidate.id)}
               className="cursor-pointer"
             >
-              <GlassCard 
-                className={`p-6 relative overflow-hidden transition-all duration-500 ${
-                  selectedCandidate === candidate.id
+              <GlassCard
+                className={`p-6 relative overflow-hidden transition-all duration-500 ${selectedCandidate === candidate.id
                     ? 'ring-4 ring-blue-500/50 bg-blue-500/10 border-blue-400/40'
                     : ''
-                }`}
+                  }`}
               >
                 {/* Selection Indicator */}
                 <AnimatePresence>
@@ -138,7 +137,7 @@ const VotingPage = () => {
                       className="w-full h-full rounded-full object-cover"
                     />
                   </motion.div>
-                  
+
                   {/* Floating Badge */}
                   <motion.div
                     initial={{ scale: 0 }}
@@ -152,9 +151,9 @@ const VotingPage = () => {
 
                 {/* Candidate Info */}
                 <div className="text-center mb-6">
-                  <h3 className="text-2xl font-bold text-white mb-2">{candidate.name}</h3>
+                  <h3 className="text-2xl font-bold text-[#222] mb-2">{candidate.name}</h3>
                   <p className="text-blue-400 font-semibold mb-3">{candidate.party}</p>
-                  <p className="text-white/80 text-sm leading-relaxed">{candidate.description}</p>
+                  <p className="text-[#222]/80 text-sm leading-relaxed">{candidate.description}</p>
                 </div>
 
                 {/* Policy Tags */}
@@ -165,7 +164,7 @@ const VotingPage = () => {
                       initial={{ scale: 0, opacity: 0 }}
                       animate={{ scale: 1, opacity: 1 }}
                       transition={{ delay: 0.7 + index * 0.1 + policyIndex * 0.05 }}
-                      className="px-3 py-1 bg-white/10 border border-white/20 rounded-full text-white/80 text-xs"
+                      className="px-3 py-1 bg-[#222]/10 border border-[#222]/20 rounded-full text-[#222]/80 text-xs"
                     >
                       {policy}
                     </motion.span>
@@ -177,11 +176,10 @@ const VotingPage = () => {
                   whileHover={{ scale: 1.05 }}
                   whileTap={{ scale: 0.95 }}
                   onClick={() => setSelectedCandidate(candidate.id)}
-                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${
-                    selectedCandidate === candidate.id
+                  className={`w-full py-3 rounded-lg font-semibold transition-all duration-300 ${selectedCandidate === candidate.id
                       ? 'bg-gradient-to-r from-blue-500 to-purple-600 text-white shadow-lg shadow-blue-500/25'
-                      : 'bg-white/10 border border-white/20 text-white hover:bg-white/20'
-                  }`}
+                      : 'bg-[#222]/10 border border-[#222]/20 text-[#222] hover:bg-[#222]/20'
+                    }`}
                 >
                   {selectedCandidate === candidate.id ? 'Selected' : 'Select Candidate'}
                 </motion.button>
@@ -203,11 +201,10 @@ const VotingPage = () => {
               whileTap={{ scale: selectedCandidate ? 0.95 : 1 }}
               onClick={handleVote}
               disabled={!selectedCandidate || isSubmitting}
-              className={`px-12 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-3 ${
-                selectedCandidate
+              className={`px-12 py-4 rounded-xl font-bold text-lg transition-all duration-300 flex items-center gap-3 ${selectedCandidate
                   ? 'bg-gradient-to-r from-green-500 to-blue-600 text-white shadow-lg shadow-green-500/25 hover:shadow-green-500/40'
-                  : 'bg-white/10 text-white/50 cursor-not-allowed'
-              }`}
+                  : 'bg-[#222]/10 text-[#222]/50 cursor-not-allowed'
+                }`}
             >
               {isSubmitting ? (
                 <>
@@ -225,13 +222,13 @@ const VotingPage = () => {
                 </>
               )}
             </motion.button>
-            
+
             {!selectedCandidate && (
               <motion.p
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
                 transition={{ delay: 1 }}
-                className="text-white/60 text-sm mt-3"
+                className="text-[#222]/60 text-sm mt-3"
               >
                 Please select a candidate to continue
               </motion.p>

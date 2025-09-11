@@ -18,7 +18,7 @@ const VotingDeadline = () => {
     const timer = setInterval(() => {
       setTimeLeft(prev => {
         let { days, hours, minutes, seconds } = prev;
-        
+
         if (seconds > 0) {
           seconds--;
         } else if (minutes > 0) {
@@ -37,7 +37,7 @@ const VotingDeadline = () => {
           setIsExpired(true);
           return prev;
         }
-        
+
         return { days, hours, minutes, seconds };
       });
     }, 1000);
@@ -60,7 +60,7 @@ const VotingDeadline = () => {
       className="relative min-h-screen pt-20"
     >
       <ParticleBackground />
-      
+
       <div className="relative z-10 container mx-auto px-6 py-12">
         <motion.div
           initial={{ y: 50, opacity: 0 }}
@@ -76,12 +76,12 @@ const VotingDeadline = () => {
           >
             <FiClock className="w-12 h-12 text-white" />
           </motion.div>
-          
-          <h1 className="text-4xl md:text-6xl font-bold text-white mb-4">
+
+          <h1 className="text-4xl md:text-6xl font-bold text-[#222] mb-4">
             {isExpired ? 'Voting Has Ended' : 'Voting Deadline'}
           </h1>
-          <p className="text-xl text-white/80 max-w-2xl mx-auto">
-            {isExpired 
+          <p className="text-xl text-[#222]/80 max-w-2xl mx-auto">
+            {isExpired
               ? 'Thank you for your participation. Results are being tabulated.'
               : 'Make sure to cast your vote before the deadline. Every vote counts!'
             }
@@ -97,8 +97,8 @@ const VotingDeadline = () => {
                   key={unit.label}
                   initial={{ y: 100, opacity: 0, rotateY: -90 }}
                   animate={{ y: 0, opacity: 1, rotateY: 0 }}
-                  transition={{ 
-                    delay: index * 0.2, 
+                  transition={{
+                    delay: index * 0.2,
                     duration: 0.8,
                     type: "spring",
                     stiffness: 100
@@ -114,7 +114,7 @@ const VotingDeadline = () => {
                     >
                       {unit.value.toString().padStart(2, '0')}
                     </motion.div>
-                    <div className="text-white/80 text-lg font-medium">{unit.label}</div>
+                    <div className="text-[#222]/80 text-lg font-medium">{unit.label}</div>
                   </GlassCard>
                 </motion.div>
               ))}
@@ -132,10 +132,10 @@ const VotingDeadline = () => {
                   <div className="w-12 h-12 bg-gradient-to-r from-blue-500 to-purple-600 rounded-full flex items-center justify-center">
                     <FiCalendar className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white">Election Details</h3>
+                  <h3 className="text-xl font-semibold text-[#222]">Election Details</h3>
                 </div>
-                
-                <div className="space-y-3 text-white/80">
+
+                <div className="space-y-3 text-[#222]/80">
                   <div className="flex justify-between">
                     <span>Election Date:</span>
                     <span className="font-semibold">December 15, 2024</span>
@@ -160,10 +160,10 @@ const VotingDeadline = () => {
                   <div className="w-12 h-12 bg-gradient-to-r from-orange-500 to-red-600 rounded-full flex items-center justify-center">
                     <FiAlertCircle className="w-6 h-6 text-white" />
                   </div>
-                  <h3 className="text-xl font-semibold text-white">Important Reminders</h3>
+                  <h3 className="text-xl font-semibold text-[#222]">Important Reminders</h3>
                 </div>
-                
-                <ul className="space-y-3 text-white/80">
+
+                <ul className="space-y-3 text-[#222]/80">
                   <li className="flex items-start gap-2">
                     <div className="w-2 h-2 bg-blue-400 rounded-full mt-2 flex-shrink-0" />
                     <span>Ensure you have completed voter verification</span>
@@ -192,8 +192,8 @@ const VotingDeadline = () => {
               className="text-center mt-12"
             >
               <GlassCard className="inline-block p-8">
-                <h2 className="text-2xl font-bold text-white mb-4">Haven't voted yet?</h2>
-                <p className="text-white/80 mb-6">
+                <h2 className="text-2xl font-bold text-[#222] mb-4">Haven't voted yet?</h2>
+                <p className="text-[#222]/80 mb-6">
                   Time is running out. Make your voice heard in this historic election.
                 </p>
                 <motion.a
@@ -224,13 +224,13 @@ const VotingDeadline = () => {
               >
                 <FiClock className="w-12 h-12 text-white" />
               </motion.div>
-              
-              <h2 className="text-3xl font-bold text-white mb-4">Voting Period Has Ended</h2>
-              <p className="text-white/80 text-lg mb-8">
-                Thank you to everyone who participated in this election. 
+
+              <h2 className="text-3xl font-bold text-[#222] mb-4">Voting Period Has Ended</h2>
+              <p className="text-[#222]/80 text-lg mb-8">
+                Thank you to everyone who participated in this election.
                 The votes are now being counted and results will be available shortly.
               </p>
-              
+
               <motion.a
                 href="/results"
                 whileHover={{ scale: 1.05 }}

@@ -19,14 +19,14 @@ const Navigation = () => {
     <motion.nav
       initial={{ y: -100 }}
       animate={{ y: 0 }}
-      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/10 border-b border-white/20"
+      className="fixed top-0 left-0 right-0 z-50 backdrop-blur-md bg-white/90 border-b border-[#222]/20"
     >
       <div className="container mx-auto px-6 py-4">
         <div className="flex items-center justify-between">
           <Link to="/">
             <motion.div
               whileHover={{ scale: 1.05 }}
-              className="text-2xl font-bold text-white"
+              className="text-2xl font-bold text-[#222]"
             >
               ElectroVote
             </motion.div>
@@ -37,16 +37,15 @@ const Navigation = () => {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
+
               return (
                 <Link
                   key={item.path}
                   to={item.path}
-                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-                    isActive 
-                      ? 'bg-white/20 text-white shadow-lg' 
-                      : 'text-white/80 hover:text-white hover:bg-white/10'
-                  }`}
+                  className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${isActive
+                      ? 'bg-[#222]/20 text-[#222] shadow-lg'
+                      : 'text-[#222]/80 hover:text-[#222] hover:bg-[#222]/10'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
@@ -58,7 +57,7 @@ const Navigation = () => {
           {/* Mobile Menu Button */}
           <button
             onClick={() => setIsOpen(!isOpen)}
-            className="md:hidden text-white"
+            className="md:hidden text-[#222]"
           >
             {isOpen ? <FiX size={24} /> : <FiMenu size={24} />}
           </button>
@@ -74,17 +73,16 @@ const Navigation = () => {
             {navItems.map((item) => {
               const Icon = item.icon;
               const isActive = location.pathname === item.path;
-              
+
               return (
                 <Link
                   key={item.path}
                   to={item.path}
                   onClick={() => setIsOpen(false)}
-                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 ${
-                    isActive 
-                      ? 'bg-white/20 text-white' 
-                      : 'text-white/80 hover:text-white hover:bg-white/10'
-                  }`}
+                  className={`flex items-center space-x-2 px-4 py-3 rounded-lg transition-all duration-300 ${isActive
+                      ? 'bg-[#222]/20 text-[#222]'
+                      : 'text-[#222]/80 hover:text-[#222] hover:bg-[#222]/10'
+                    }`}
                 >
                   <Icon className="w-4 h-4" />
                   <span>{item.label}</span>
