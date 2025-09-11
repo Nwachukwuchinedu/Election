@@ -1,0 +1,26 @@
+{
+  "name": "election-backend",
+  "version": "1.0.0",
+  "description": "Backend for Election Web App",
+  "main": "src/app.js",
+  "scripts": {
+    "start": "node src/app.js",
+    "dev": "nodemon src/app.js",
+    "seed:admin": "node src/scripts/seedAdmin.js",
+    "seed:voters": "node src/scripts/registerVoters.js",
+    "seed:candidates": "node src/scripts/registerCandidates.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "mongoose": "^7.5.0",
+    "bcryptjs": "^2.4.3",
+    "jsonwebtoken": "^9.0.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.3.1",
+    "cloudinary": "^1.40.0",
+    "nodemailer": "^6.9.4"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  }
+}
