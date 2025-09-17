@@ -9,15 +9,18 @@ import {
   FireIcon,
   EyeIcon,
   ClockIcon,
+  Cog6ToothIcon,
 } from "@heroicons/react/24/outline";
 import { adminAPI } from "../services/api";
 import Header from "../components/common/Header";
 import StatCard from "../components/admin/StatCard";
+import VoterManagement from "../components/admin/VoterManagement";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import { useAuth } from "../context/AuthContext";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
+  const [activeTab, setActiveTab] = useState("dashboard");
   const [stats, setStats] = useState({
     totalVoters: 0,
     votersWhoVoted: 0,
@@ -221,273 +224,301 @@ const AdminDashboard = () => {
           </div>
         )}
 
-        {/* Charts & Analytics */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* Vote Statistics */}
-          <div
-            className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 animate-slideUp"
-            style={{ animationDelay: "0.5s" }}
-          >
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-glow">
-                <ChartBarIcon className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-poppins font-bold text-gray-900">
-                  Live Vote Progress
-                </h3>
-                <p className="text-sm font-montserrat text-gray-600">
-                  Real-time voting statistics
-                </p>
-              </div>
-            </div>
-
-            {Object.keys(voteStats).length === 0 ? (
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center">
-                <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <ChartBarIcon className="h-8 w-8 text-gray-400" />
+        {/* Charts & Analytics - Only show on dashboard tab */}
+        {activeTab === "dashboard" && (
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            {/* Vote Statistics */}
+            <div
+              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 animate-slideUp"
+              style={{ animationDelay: "0.5s" }}
+            >
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-glow">
+                  <ChartBarIcon className="h-6 w-6 text-white" />
                 </div>
-                <p className="font-poppins font-medium text-gray-700 mb-2">
-                  No Vote Data Yet
-                </p>
-                <p className="text-sm font-montserrat text-gray-500">
-                  Votes will appear here as they are cast
-                </p>
+                <div>
+                  <h3 className="text-xl font-poppins font-bold text-gray-900">
+                    Live Vote Progress
+                  </h3>
+                  <p className="text-sm font-montserrat text-gray-600">
+                    Real-time voting statistics
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-8">
-                {Object.entries(voteStats).map(([position, data], index) => {
-                  const maxVotes = Math.max(1, data.totalVotes || 0);
-                  return (
-                    <div
-                      key={position}
-                      className="animate-fadeIn"
-                      style={{ animationDelay: `${0.1 * index}s` }}
-                    >
-                      <div className="flex items-center justify-between mb-4">
-                        <h4 className="font-poppins font-semibold text-gray-900">
-                          {position}
-                        </h4>
-                        <div className="flex items-center space-x-2">
-                          <FireIcon className="h-4 w-4 text-orange-500" />
-                          <span className="text-sm font-montserrat font-medium text-gray-600">
-                            {data.totalVotes} votes
-                          </span>
+
+              {Object.keys(voteStats).length === 0 ? (
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <ChartBarIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="font-poppins font-medium text-gray-700 mb-2">
+                    No Vote Data Yet
+                  </p>
+                  <p className="text-sm font-montserrat text-gray-500">
+                    Votes will appear here as they are cast
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-8">
+                  {Object.entries(voteStats).map(([position, data], index) => {
+                    const maxVotes = Math.max(1, data.totalVotes || 0);
+                    return (
+                      <div
+                        key={position}
+                        className="animate-fadeIn"
+                        style={{ animationDelay: `${0.1 * index}s` }}
+                      >
+                        <div className="flex items-center justify-between mb-4">
+                          <h4 className="font-poppins font-semibold text-gray-900">
+                            {position}
+                          </h4>
+                          <div className="flex items-center space-x-2">
+                            <FireIcon className="h-4 w-4 text-orange-500" />
+                            <span className="text-sm font-montserrat font-medium text-gray-600">
+                              {data.totalVotes} votes
+                            </span>
+                          </div>
                         </div>
-                      </div>
-                      <div className="space-y-3">
-                        {data.candidates.map((c) => {
-                          const widthPercent = Math.round(
-                            ((c.votes || 0) / maxVotes) * 100
-                          );
-                          const isLeading =
-                            c.votes ===
-                            Math.max(
-                              ...data.candidates.map(
-                                (candidate) => candidate.votes || 0
-                              )
+                        <div className="space-y-3">
+                          {data.candidates.map((c) => {
+                            const widthPercent = Math.round(
+                              ((c.votes || 0) / maxVotes) * 100
                             );
-                          return (
-                            <div key={c.candidateId} className="group">
-                              <div className="flex items-center justify-between text-sm mb-2">
-                                <div className="flex items-center space-x-2">
+                            const isLeading =
+                              c.votes ===
+                              Math.max(
+                                ...data.candidates.map(
+                                  (candidate) => candidate.votes || 0
+                                )
+                              );
+                            return (
+                              <div key={c.candidateId} className="group">
+                                <div className="flex items-center justify-between text-sm mb-2">
+                                  <div className="flex items-center space-x-2">
+                                    <span
+                                      className={`font-montserrat font-medium ${
+                                        isLeading
+                                          ? "text-primary-700"
+                                          : "text-gray-700"
+                                      }`}
+                                    >
+                                      {c.name}
+                                    </span>
+                                    {isLeading && c.votes > 0 && (
+                                      <TrophyIcon className="h-4 w-4 text-yellow-500 animate-bounce" />
+                                    )}
+                                  </div>
                                   <span
-                                    className={`font-montserrat font-medium ${
+                                    className={`font-poppins font-semibold ${
                                       isLeading
-                                        ? "text-primary-700"
-                                        : "text-gray-700"
+                                        ? "text-primary-600"
+                                        : "text-gray-600"
                                     }`}
                                   >
-                                    {c.name}
+                                    {c.votes}
                                   </span>
-                                  {isLeading && c.votes > 0 && (
-                                    <TrophyIcon className="h-4 w-4 text-yellow-500 animate-bounce" />
-                                  )}
                                 </div>
-                                <span
-                                  className={`font-poppins font-semibold ${
-                                    isLeading
-                                      ? "text-primary-600"
-                                      : "text-gray-600"
-                                  }`}
-                                >
-                                  {c.votes}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                                <div
-                                  className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
-                                    isLeading
-                                      ? "bg-gradient-to-r from-primary-500 to-secondary-500"
-                                      : "bg-gradient-to-r from-gray-400 to-gray-500"
-                                  }`}
-                                  style={{ width: `${widthPercent}%` }}
-                                >
-                                  <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer bg-[length:200%_100%]"></div>
+                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
+                                  <div
+                                    className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
+                                      isLeading
+                                        ? "bg-gradient-to-r from-primary-500 to-secondary-500"
+                                        : "bg-gradient-to-r from-gray-400 to-gray-500"
+                                    }`}
+                                    style={{ width: `${widthPercent}%` }}
+                                  >
+                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer bg-[length:200%_100%]"></div>
+                                  </div>
                                 </div>
                               </div>
-                            </div>
-                          );
-                        })}
+                            );
+                          })}
+                        </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
-          </div>
-
-          {/* Top Candidates Leaderboard */}
-          <div
-            className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 animate-slideUp"
-            style={{ animationDelay: "0.6s" }}
-          >
-            <div className="flex items-center space-x-3 mb-6">
-              <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-glow">
-                <TrophyIcon className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h3 className="text-xl font-poppins font-bold text-gray-900">
-                  Leaderboard
-                </h3>
-                <p className="text-sm font-montserrat text-gray-600">
-                  Current leading candidates
-                </p>
-              </div>
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            {Object.keys(voteStats).length === 0 ? (
-              <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center">
-                <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                  <TrophyIcon className="h-8 w-8 text-gray-400" />
+            {/* Top Candidates Leaderboard */}
+            <div
+              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 animate-slideUp"
+              style={{ animationDelay: "0.6s" }}
+            >
+              <div className="flex items-center space-x-3 mb-6">
+                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-glow">
+                  <TrophyIcon className="h-6 w-6 text-white" />
                 </div>
-                <p className="font-poppins font-medium text-gray-700 mb-2">
-                  No Leaders Yet
-                </p>
-                <p className="text-sm font-montserrat text-gray-500">
-                  Leaderboard will update as votes come in
-                </p>
+                <div>
+                  <h3 className="text-xl font-poppins font-bold text-gray-900">
+                    Leaderboard
+                  </h3>
+                  <p className="text-sm font-montserrat text-gray-600">
+                    Current leading candidates
+                  </p>
+                </div>
               </div>
-            ) : (
-              <div className="space-y-4">
-                {Object.entries(voteStats).map(([position, data], index) => {
-                  const sorted = [...data.candidates].sort(
-                    (a, b) => (b.votes || 0) - (a.votes || 0)
-                  );
-                  const leader = sorted[0];
-                  const hasVotes = leader && leader.votes > 0;
 
-                  return (
-                    <div
-                      key={position}
-                      className="group p-4 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-200 animate-fadeIn"
-                      style={{ animationDelay: `${0.1 * index}s` }}
-                    >
-                      <div className="flex items-center justify-between">
-                        <div className="flex items-center space-x-3">
-                          <div
-                            className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                              hasVotes
-                                ? "bg-gradient-to-br from-yellow-400 to-orange-500"
-                                : "bg-gray-200"
-                            }`}
-                          >
-                            {hasVotes ? (
-                              <TrophyIcon className="h-5 w-5 text-white" />
-                            ) : (
-                              <span className="text-xs font-bold text-gray-500">
-                                {index + 1}
-                              </span>
-                            )}
+              {Object.keys(voteStats).length === 0 ? (
+                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center">
+                  <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                    <TrophyIcon className="h-8 w-8 text-gray-400" />
+                  </div>
+                  <p className="font-poppins font-medium text-gray-700 mb-2">
+                    No Leaders Yet
+                  </p>
+                  <p className="text-sm font-montserrat text-gray-500">
+                    Leaderboard will update as votes come in
+                  </p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {Object.entries(voteStats).map(([position, data], index) => {
+                    const sorted = [...data.candidates].sort(
+                      (a, b) => (b.votes || 0) - (a.votes || 0)
+                    );
+                    const leader = sorted[0];
+                    const hasVotes = leader && leader.votes > 0;
+
+                    return (
+                      <div
+                        key={position}
+                        className="group p-4 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-200 animate-fadeIn"
+                        style={{ animationDelay: `${0.1 * index}s` }}
+                      >
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
+                                hasVotes
+                                  ? "bg-gradient-to-br from-yellow-400 to-orange-500"
+                                  : "bg-gray-200"
+                              }`}
+                            >
+                              {hasVotes ? (
+                                <TrophyIcon className="h-5 w-5 text-white" />
+                              ) : (
+                                <span className="text-xs font-bold text-gray-500">
+                                  {index + 1}
+                                </span>
+                              )}
+                            </div>
+                            <div>
+                              <p className="text-xs font-montserrat font-medium text-gray-500 uppercase tracking-wide">
+                                {position}
+                              </p>
+                              <p className="font-poppins font-semibold text-gray-900">
+                                {hasVotes ? leader.name : "No votes yet"}
+                              </p>
+                            </div>
                           </div>
-                          <div>
-                            <p className="text-xs font-montserrat font-medium text-gray-500 uppercase tracking-wide">
-                              {position}
+                          <div className="text-right">
+                            <p
+                              className={`text-lg font-poppins font-bold ${
+                                hasVotes ? "text-primary-600" : "text-gray-400"
+                              }`}
+                            >
+                              {hasVotes ? leader.votes : "0"}
                             </p>
-                            <p className="font-poppins font-semibold text-gray-900">
-                              {hasVotes ? leader.name : "No votes yet"}
+                            <p className="text-xs font-montserrat text-gray-500">
+                              votes
                             </p>
                           </div>
-                        </div>
-                        <div className="text-right">
-                          <p
-                            className={`text-lg font-poppins font-bold ${
-                              hasVotes ? "text-primary-600" : "text-gray-400"
-                            }`}
-                          >
-                            {hasVotes ? leader.votes : "0"}
-                          </p>
-                          <p className="text-xs font-montserrat text-gray-500">
-                            votes
-                          </p>
                         </div>
                       </div>
-                    </div>
-                  );
-                })}
-              </div>
-            )}
+                    );
+                  })}
+                </div>
+              )}
+            </div>
+          </div>
+        )}
+
+        {/* Navigation Tabs */}
+        <div
+          className="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60 p-2 animate-slideUp"
+          style={{ animationDelay: "0.7s" }}
+        >
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setActiveTab("dashboard")}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
+                activeTab === "dashboard"
+                  ? "bg-primary-600 text-white shadow-md"
+                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+              }`}
+            >
+              <ChartBarIcon className="h-5 w-5" />
+              <span>Dashboard</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("voters")}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
+                activeTab === "voters"
+                  ? "bg-primary-600 text-white shadow-md"
+                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+              }`}
+            >
+              <UsersIcon className="h-5 w-5" />
+              <span>Manage Voters</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("results")}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
+                activeTab === "results"
+                  ? "bg-primary-600 text-white shadow-md"
+                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+              }`}
+            >
+              <TrophyIcon className="h-5 w-5" />
+              <span>Results</span>
+            </button>
+            <button
+              onClick={() => setActiveTab("settings")}
+              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
+                activeTab === "settings"
+                  ? "bg-primary-600 text-white shadow-md"
+                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
+              }`}
+            >
+              <Cog6ToothIcon className="h-5 w-5" />
+              <span>Settings</span>
+            </button>
           </div>
         </div>
 
-        {/* Quick Actions */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <button
-            className="group p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60 hover:shadow-card-hover transition-all duration-300 text-left animate-slideUp"
-            style={{ animationDelay: "0.7s" }}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-700 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <UsersIcon className="h-6 w-6 text-white" />
-              </div>
-              <div>
-                <h4 className="font-poppins font-semibold text-gray-900 group-hover:text-primary-700 transition-colors">
-                  Manage Voters
-                </h4>
-                <p className="text-sm font-montserrat text-gray-600">
-                  View and manage registered voters
-                </p>
-              </div>
-            </div>
-          </button>
+        {/* Tab Content */}
+        <div className="mt-8">
+          {activeTab === "voters" && <VoterManagement />}
 
-          <button
-            className="group p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60 hover:shadow-card-hover transition-all duration-300 text-left animate-slideUp"
-            style={{ animationDelay: "0.8s" }}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-br from-green-500 to-green-700 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <TrophyIcon className="h-6 w-6 text-white" />
+          {activeTab === "results" && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 text-center">
+              <div className="w-16 h-16 bg-yellow-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <TrophyIcon className="h-8 w-8 text-yellow-600" />
               </div>
-              <div>
-                <h4 className="font-poppins font-semibold text-gray-900 group-hover:text-green-700 transition-colors">
-                  View Results
-                </h4>
-                <p className="text-sm font-montserrat text-gray-600">
-                  Detailed election results and analytics
-                </p>
-              </div>
+              <h3 className="text-xl font-poppins font-bold text-gray-900 mb-2">
+                Election Results
+              </h3>
+              <p className="text-gray-600 font-montserrat">
+                Detailed results and analytics will be available here.
+              </p>
             </div>
-          </button>
+          )}
 
-          <button
-            className="group p-6 bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60 hover:shadow-card-hover transition-all duration-300 text-left animate-slideUp"
-            style={{ animationDelay: "0.9s" }}
-          >
-            <div className="flex items-center space-x-4">
-              <div className="p-3 bg-gradient-to-br from-purple-500 to-purple-700 rounded-xl group-hover:scale-110 transition-transform duration-300">
-                <ChartBarIcon className="h-6 w-6 text-white" />
+          {activeTab === "settings" && (
+            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 text-center">
+              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
+                <Cog6ToothIcon className="h-8 w-8 text-purple-600" />
               </div>
-              <div>
-                <h4 className="font-poppins font-semibold text-gray-900 group-hover:text-purple-700 transition-colors">
-                  Export Data
-                </h4>
-                <p className="text-sm font-montserrat text-gray-600">
-                  Download reports and statistics
-                </p>
-              </div>
+              <h3 className="text-xl font-poppins font-bold text-gray-900 mb-2">
+                System Settings
+              </h3>
+              <p className="text-gray-600 font-montserrat">
+                Election configuration and system settings.
+              </p>
             </div>
-          </button>
+          )}
         </div>
       </main>
     </div>

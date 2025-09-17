@@ -53,7 +53,9 @@ export const votesAPI = {
 
 export const adminAPI = {
   getVoters: (filters) => api.get('/admin/voters', { params: filters }),
-  getVoteStats: () => api.get('/admin/vote-stats')
+  getAllVoters: () => api.get('/admin/voters/all'),
+  getVoteStats: () => api.get('/admin/vote-stats'),
+  searchVoters: (searchParams) => api.get('/admin/voters/search', { params: searchParams })
 };
 
 export default api;
