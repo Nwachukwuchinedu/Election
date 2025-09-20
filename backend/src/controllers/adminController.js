@@ -81,9 +81,11 @@ const getVoteStats = async (req, res) => {
           });
           
           return {
-            candidateId: candidate._id,
-            name: `${candidate.firstName} ${candidate.lastName}`,
-            votes
+            _id: candidate._id,
+            firstName: candidate.firstName,
+            lastName: candidate.lastName,
+            position: candidate.position,
+            voteCount: votes
           };
         })
       );

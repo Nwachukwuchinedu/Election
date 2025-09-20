@@ -1,22 +1,29 @@
 import React, { useState, useEffect } from "react";
 import {
-  UsersIcon,
   ChartBarIcon,
+  UsersIcon,
+  ClockIcon,
+  PlayIcon,
+  PauseIcon,
+  StopIcon,
+  CalendarIcon,
   UserGroupIcon,
   TrophyIcon,
   ExclamationTriangleIcon,
   SparklesIcon,
   FireIcon,
   EyeIcon,
-  ClockIcon,
   Cog6ToothIcon,
+  DocumentTextIcon,
 } from "@heroicons/react/24/outline";
-import { adminAPI } from "../services/api";
+import { adminAPI, electionAPI } from "../services/api";
 import Header from "../components/common/Header";
-import StatCard from "../components/admin/StatCard";
-import VoterManagement from "../components/admin/VoterManagement";
 import LoadingSpinner from "../components/common/LoadingSpinner";
+import CountdownTimer from "../components/common/CountdownTimer";
+import VoterManagement from "../components/admin/VoterManagement";
+import StatCard from "../components/admin/StatCard";
 import { useAuth } from "../context/AuthContext";
+import { io } from "socket.io-client";
 
 const AdminDashboard = () => {
   const { user } = useAuth();
@@ -31,6 +38,40 @@ const AdminDashboard = () => {
   const [error, setError] = useState("");
   const [voteStats, setVoteStats] = useState({});
   const [refreshing, setRefreshing] = useState(false);
+  const [electionStatus, setElectionStatus] = useState(null);
+  const [showElectionModal, setShowElectionModal] = useState(false);
+  const [electionForm, setElectionForm] = useState({
+    startTime: "",
+    endTime: ""
+  });
+  const [electionLogs, setElectionLogs] = useState([]);
+  const [showLogs, setShowLogs] = useState(false);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    // Initialize socket connection
+    const newSocket = io("http://localhost:5000");
+    setSocket(newSocket);
+
+    // Listen for election status updates
+    newSocket.on("electionStatusUpdate", (updatedElection) => {
+      setElectionStatus(updatedElection);
+      // Refresh logs when election status changes
+      if (updatedElection.id) {
+        fetchElectionLogs(updatedElection.id);
+      }
+    });
+
+    // Listen for vote cast events
+    newSocket.on("voteCast", (voteData) => {
+      // Refresh data when a vote is cast
+      fetchData(true);
+    });
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
 
   const fetchData = async (showRefreshing = false) => {
     if (showRefreshing) setRefreshing(true);
@@ -81,28 +122,244 @@ const AdminDashboard = () => {
     return () => clearInterval(interval);
   }, []);
 
+  useEffect(() => {
+    fetchElectionStatus();
+  }, []);
+
+  const fetchElectionStatus = async () => {
+    try {
+      const response = await electionAPI.getStatus();
+      setElectionStatus(response.data.election);
+      
+      // Fetch logs when election status changes
+      if (response.data.election.id) {
+        fetchElectionLogs(response.data.election.id);
+      }
+    } catch (err) {
+      console.error("Error fetching election status:", err);
+    }
+  };
+
+  const fetchElectionLogs = async (electionId) => {
+    try {
+      const response = await electionAPI.getLogs(electionId);
+      setElectionLogs(response.data.logs || []);
+    } catch (err) {
+      console.error("Error fetching election logs:", err);
+    }
+  };
+
+  const handleStartElection = async () => {
+    try {
+      await electionAPI.startElection(electionForm);
+      await fetchElectionStatus();
+      setShowElectionModal(false);
+      setElectionForm({ startTime: "", endTime: "" });
+    } catch (err) {
+      console.error("Error starting election:", err);
+    }
+  };
+
+  const handleUpdateElectionStatus = async (status) => {
+    try {
+      await electionAPI.updateStatus({ status });
+      await fetchElectionStatus();
+    } catch (err) {
+      console.error("Error updating election status:", err);
+    }
+  };
+
+  const handleStartNewElection = () => {
+    const now = new Date();
+    const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
+    
+    setElectionForm({
+      startTime: now.toISOString().slice(0, 16),
+      endTime: oneHourLater.toISOString().slice(0, 16)
+    });
+    setShowElectionModal(true);
+  };
+
   if (loading) return <LoadingSpinner message="Loading admin dashboard..." />;
 
   const participationNum = parseFloat(stats.participation);
   const isHighParticipation = participationNum >= 70;
   const isMediumParticipation = participationNum >= 40;
 
+  // Check if election is active
+  const isElectionActive = electionStatus && electionStatus.status === 'ongoing';
+  const isElectionPaused = electionStatus && electionStatus.status === 'paused';
+  const isElectionCompleted = electionStatus && electionStatus.status === 'completed';
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
-      {/* Header */}
-      <Header />
+      <Header user={user} />
 
-      {/* Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-10 w-40 h-40 bg-gradient-to-br from-primary-200 to-primary-300 rounded-full opacity-10 animate-float"></div>
-        <div
-          className="absolute bottom-20 left-10 w-32 h-32 bg-gradient-to-tr from-secondary-200 to-secondary-300 rounded-full opacity-10 animate-float"
-          style={{ animationDelay: "3s" }}
-        ></div>
-      </div>
-
-      {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Election Status Banner */}
+        {electionStatus && (
+          <div className="mb-8">
+            <div className={`rounded-2xl p-6 shadow-card border backdrop-blur-sm ${
+              isElectionActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+              isElectionPaused ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+              isElectionCompleted ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200' :
+              'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+            }`}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-xl font-poppins font-bold text-gray-900">
+                    {electionStatus.name}
+                  </h2>
+                  <p className="text-gray-600 font-montserrat mt-1">
+                    Status: <span className="font-semibold capitalize">{electionStatus.status.replace('_', ' ')}</span>
+                  </p>
+                </div>
+                
+                <div className="mt-4 md:mt-0 flex space-x-3">
+                  {electionStatus.status === 'not_started' && (
+                    <button
+                      onClick={() => setShowElectionModal(true)}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-montserrat font-medium"
+                    >
+                      <PlayIcon className="h-5 w-5 mr-2" />
+                      Schedule Election
+                    </button>
+                  )}
+                  
+                  {electionStatus.status === 'not_started' && (
+                    <button
+                      onClick={() => handleUpdateElectionStatus('ongoing')}
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-montserrat font-medium"
+                    >
+                      <PlayIcon className="h-5 w-5 mr-2" />
+                      Start Now
+                    </button>
+                  )}
+                  
+                  {isElectionActive && (
+                    <button
+                      onClick={() => handleUpdateElectionStatus('paused')}
+                      className="flex items-center px-4 py-2 bg-yellow-600 text-white rounded-xl hover:bg-yellow-700 transition-colors font-montserrat font-medium"
+                    >
+                      <PauseIcon className="h-5 w-5 mr-2" />
+                      Pause
+                    </button>
+                  )}
+                  
+                  {isElectionPaused && (
+                    <button
+                      onClick={() => handleUpdateElectionStatus('ongoing')}
+                      className="flex items-center px-4 py-2 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors font-montserrat font-medium"
+                    >
+                      <PlayIcon className="h-5 w-5 mr-2" />
+                      Resume
+                    </button>
+                  )}
+                  
+                  {(isElectionActive || isElectionPaused) && (
+                    <button
+                      onClick={() => handleUpdateElectionStatus('completed')}
+                      className="flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-montserrat font-medium"
+                    >
+                      <StopIcon className="h-5 w-5 mr-2" />
+                      End Election
+                    </button>
+                  )}
+                  
+                  {isElectionCompleted && (
+                    <button
+                      onClick={handleStartNewElection}
+                      className="flex items-center px-4 py-2 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition-colors font-montserrat font-medium"
+                    >
+                      <PlayIcon className="h-5 w-5 mr-2" />
+                      Start New Election
+                    </button>
+                  )}
+                  
+                  {/* Add button to view logs */}
+                  <button
+                    onClick={() => setShowLogs(!showLogs)}
+                    className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-montserrat font-medium"
+                  >
+                    <DocumentTextIcon className="h-5 w-5 mr-2" />
+                    {showLogs ? 'Hide Logs' : 'View Logs'}
+                  </button>
+                </div>
+              </div>
+              
+              {electionStatus.startTime && electionStatus.endTime && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:space-x-6">
+                    <div className="flex items-center text-gray-600 font-montserrat">
+                      <CalendarIcon className="h-5 w-5 mr-2" />
+                      <span>Start: {new Date(electionStatus.startTime).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600 font-montserrat mt-2 sm:mt-0">
+                      <ClockIcon className="h-5 w-5 mr-2" />
+                      <span>End: {new Date(electionStatus.endTime).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {/* Election Logs Section */}
+            {showLogs && (
+              <div className="mt-4 bg-white rounded-2xl shadow-card border border-gray-200 p-6">
+                <h3 className="text-lg font-poppins font-bold text-gray-900 mb-4">Election Activity Logs</h3>
+                {electionLogs.length === 0 ? (
+                  <p className="text-gray-500 font-montserrat">No activity logs available.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Timestamp
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Action
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Details
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            User
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {electionLogs.map((log, index) => (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
+                              {new Date(log.timestamp).toLocaleString()}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-montserrat capitalize">
+                              {log.action}
+                            </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 font-montserrat">
+                              {log.details}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
+                              {log.userName || 'System'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {isElectionActive && electionStatus.endTime && (
+              <div className="mt-4">
+                <CountdownTimer electionStatus={electionStatus} />
+              </div>
+            )}
+          </div>
+        )}
+        
         {/* Header Section */}
         <div className="relative bg-gradient-to-r from-white via-blue-50/50 to-indigo-50/50 rounded-3xl shadow-card border border-white/60 backdrop-blur-sm p-8 mb-8 overflow-hidden animate-slideUp">
           {/* Decorative Elements */}
@@ -174,353 +431,182 @@ const AdminDashboard = () => {
               value={stats.votersWhoVoted}
               icon={TrophyIcon}
               color="success"
-              trend={`${stats.participation} participation`}
+              trend={`${stats.participation} participation rate`}
             />
           </div>
           <div className="animate-slideUp" style={{ animationDelay: "0.3s" }}>
             <StatCard
-              title="Participation Rate"
+              title="Participation"
               value={stats.participation}
-              icon={ChartBarIcon}
-              color={
-                isHighParticipation
-                  ? "success"
-                  : isMediumParticipation
-                  ? "warning"
-                  : "error"
-              }
-              trend={
-                isHighParticipation
-                  ? "Excellent turnout!"
-                  : isMediumParticipation
-                  ? "Good progress"
-                  : "Needs improvement"
-              }
+              icon={UserGroupIcon}
+              color={isHighParticipation ? "success" : isMediumParticipation ? "warning" : "danger"}
+              trend={isHighParticipation ? "High engagement!" : isMediumParticipation ? "Good participation" : "Needs improvement"}
             />
           </div>
           <div className="animate-slideUp" style={{ animationDelay: "0.4s" }}>
             <StatCard
-              title="Total Candidates"
+              title="Candidates"
               value={stats.totalCandidates}
-              icon={UserGroupIcon}
-              color="info"
+              icon={ChartBarIcon}
+              color="secondary"
               trend="Across all positions"
             />
           </div>
         </div>
 
-        {/* Error Alert */}
-        {error && (
-          <div className="bg-gradient-to-r from-red-50 to-pink-50 border border-red-200 rounded-2xl p-6 mb-8 animate-slideDown">
-            <div className="flex items-center space-x-4">
-              <ExclamationTriangleIcon className="h-6 w-6 text-red-600 flex-shrink-0" />
-              <div>
-                <p className="font-poppins font-semibold text-red-800">
-                  Dashboard Error
-                </p>
-                <p className="text-sm font-montserrat text-red-700">{error}</p>
-              </div>
-            </div>
+        {/* Tab Navigation */}
+        <div className="bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60 mb-8">
+          <div className="border-b border-gray-200">
+            <nav className="flex -mb-px">
+              <button
+                onClick={() => setActiveTab("dashboard")}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${
+                  activeTab === "dashboard"
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <ChartBarIcon className="h-5 w-5" />
+                  <span>Dashboard</span>
+                </div>
+              </button>
+              <button
+                onClick={() => setActiveTab("voters")}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${
+                  activeTab === "voters"
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <UsersIcon className="h-5 w-5" />
+                  <span>Voter Management</span>
+                </div>
+              </button>
+            </nav>
           </div>
-        )}
 
-        {/* Charts & Analytics - Only show on dashboard tab */}
-        {activeTab === "dashboard" && (
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-            {/* Vote Statistics */}
-            <div
-              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 animate-slideUp"
-              style={{ animationDelay: "0.5s" }}
-            >
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-blue-700 rounded-2xl shadow-glow">
-                  <ChartBarIcon className="h-6 w-6 text-white" />
-                </div>
+          {/* Tab Content */}
+          <div className="p-6">
+            {activeTab === "dashboard" && (
+              <div className="space-y-8">
+                {/* Vote Statistics */}
                 <div>
-                  <h3 className="text-xl font-poppins font-bold text-gray-900">
-                    Live Vote Progress
+                  <h3 className="text-xl font-poppins font-bold text-gray-900 mb-6">
+                    Vote Statistics
                   </h3>
-                  <p className="text-sm font-montserrat text-gray-600">
-                    Real-time voting statistics
-                  </p>
-                </div>
-              </div>
-
-              {Object.keys(voteStats).length === 0 ? (
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <ChartBarIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <p className="font-poppins font-medium text-gray-700 mb-2">
-                    No Vote Data Yet
-                  </p>
-                  <p className="text-sm font-montserrat text-gray-500">
-                    Votes will appear here as they are cast
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-8">
-                  {Object.entries(voteStats).map(([position, data], index) => {
-                    const maxVotes = Math.max(1, data.totalVotes || 0);
-                    return (
-                      <div
-                        key={position}
-                        className="animate-fadeIn"
-                        style={{ animationDelay: `${0.1 * index}s` }}
-                      >
-                        <div className="flex items-center justify-between mb-4">
-                          <h4 className="font-poppins font-semibold text-gray-900">
+                  {Object.keys(voteStats).length === 0 ? (
+                    <div className="text-center py-12">
+                      <div className="inline-flex items-center justify-center p-4 bg-gray-100 rounded-full mb-4">
+                        <ChartBarIcon className="h-12 w-12 text-gray-400" />
+                      </div>
+                      <p className="text-gray-500 font-montserrat">
+                        No vote statistics available yet
+                      </p>
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {Object.entries(voteStats).map(([position, data]) => (
+                        <div
+                          key={position}
+                          className="bg-white rounded-xl shadow-sm border border-gray-200 p-6"
+                        >
+                          <h4 className="font-poppins font-bold text-gray-900 mb-4">
                             {position}
                           </h4>
-                          <div className="flex items-center space-x-2">
-                            <FireIcon className="h-4 w-4 text-orange-500" />
-                            <span className="text-sm font-montserrat font-medium text-gray-600">
-                              {data.totalVotes} votes
-                            </span>
-                          </div>
-                        </div>
-                        <div className="space-y-3">
-                          {data.candidates.map((c) => {
-                            const widthPercent = Math.round(
-                              ((c.votes || 0) / maxVotes) * 100
-                            );
-                            const isLeading =
-                              c.votes ===
-                              Math.max(
-                                ...data.candidates.map(
-                                  (candidate) => candidate.votes || 0
-                                )
-                              );
-                            return (
-                              <div key={c.candidateId} className="group">
-                                <div className="flex items-center justify-between text-sm mb-2">
-                                  <div className="flex items-center space-x-2">
-                                    <span
-                                      className={`font-montserrat font-medium ${
-                                        isLeading
-                                          ? "text-primary-700"
-                                          : "text-gray-700"
-                                      }`}
-                                    >
-                                      {c.name}
-                                    </span>
-                                    {isLeading && c.votes > 0 && (
-                                      <TrophyIcon className="h-4 w-4 text-yellow-500 animate-bounce" />
-                                    )}
+                          <div className="space-y-3">
+                            {data.candidates.map((candidate) => (
+                              <div key={candidate._id} className="flex items-center justify-between">
+                                <div className="flex items-center space-x-3">
+                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold text-sm">
+                                    {candidate.firstName?.charAt(0) || ''}
+                                    {candidate.lastName?.charAt(0) || ''}
                                   </div>
-                                  <span
-                                    className={`font-poppins font-semibold ${
-                                      isLeading
-                                        ? "text-primary-600"
-                                        : "text-gray-600"
-                                    }`}
-                                  >
-                                    {c.votes}
+                                  <div>
+                                    <p className="font-poppins font-medium text-gray-900">
+                                      {candidate.firstName || ''} {candidate.lastName || ''}
+                                    </p>
+                                    <p className="text-xs font-montserrat text-gray-500">
+                                      {candidate.position || ''}
+                                    </p>
+                                  </div>
+                                </div>
+                                <div className="flex items-center space-x-2">
+                                  <span className="font-poppins font-bold text-gray-900">
+                                    {candidate.voteCount || 0}
+                                  </span>
+                                  <span className="text-xs font-montserrat text-gray-500">
+                                    votes
                                   </span>
                                 </div>
-                                <div className="w-full bg-gray-100 rounded-full h-3 overflow-hidden">
-                                  <div
-                                    className={`h-full rounded-full transition-all duration-1000 ease-out relative overflow-hidden ${
-                                      isLeading
-                                        ? "bg-gradient-to-r from-primary-500 to-secondary-500"
-                                        : "bg-gradient-to-r from-gray-400 to-gray-500"
-                                    }`}
-                                    style={{ width: `${widthPercent}%` }}
-                                  >
-                                    <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/30 to-transparent animate-shimmer bg-[length:200%_100%]"></div>
-                                  </div>
-                                </div>
                               </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
-            </div>
-
-            {/* Top Candidates Leaderboard */}
-            <div
-              className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 animate-slideUp"
-              style={{ animationDelay: "0.6s" }}
-            >
-              <div className="flex items-center space-x-3 mb-6">
-                <div className="p-3 bg-gradient-to-br from-yellow-500 to-orange-600 rounded-2xl shadow-glow">
-                  <TrophyIcon className="h-6 w-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="text-xl font-poppins font-bold text-gray-900">
-                    Leaderboard
-                  </h3>
-                  <p className="text-sm font-montserrat text-gray-600">
-                    Current leading candidates
-                  </p>
-                </div>
-              </div>
-
-              {Object.keys(voteStats).length === 0 ? (
-                <div className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-2xl p-12 text-center">
-                  <div className="w-16 h-16 bg-gray-200 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                    <TrophyIcon className="h-8 w-8 text-gray-400" />
-                  </div>
-                  <p className="font-poppins font-medium text-gray-700 mb-2">
-                    No Leaders Yet
-                  </p>
-                  <p className="text-sm font-montserrat text-gray-500">
-                    Leaderboard will update as votes come in
-                  </p>
-                </div>
-              ) : (
-                <div className="space-y-4">
-                  {Object.entries(voteStats).map(([position, data], index) => {
-                    const sorted = [...data.candidates].sort(
-                      (a, b) => (b.votes || 0) - (a.votes || 0)
-                    );
-                    const leader = sorted[0];
-                    const hasVotes = leader && leader.votes > 0;
-
-                    return (
-                      <div
-                        key={position}
-                        className="group p-4 bg-gradient-to-r from-gray-50 to-blue-50/50 rounded-2xl border border-gray-100 hover:shadow-md transition-all duration-200 animate-fadeIn"
-                        style={{ animationDelay: `${0.1 * index}s` }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`w-10 h-10 rounded-xl flex items-center justify-center ${
-                                hasVotes
-                                  ? "bg-gradient-to-br from-yellow-400 to-orange-500"
-                                  : "bg-gray-200"
-                              }`}
-                            >
-                              {hasVotes ? (
-                                <TrophyIcon className="h-5 w-5 text-white" />
-                              ) : (
-                                <span className="text-xs font-bold text-gray-500">
-                                  {index + 1}
-                                </span>
-                              )}
-                            </div>
-                            <div>
-                              <p className="text-xs font-montserrat font-medium text-gray-500 uppercase tracking-wide">
-                                {position}
-                              </p>
-                              <p className="font-poppins font-semibold text-gray-900">
-                                {hasVotes ? leader.name : "No votes yet"}
-                              </p>
-                            </div>
-                          </div>
-                          <div className="text-right">
-                            <p
-                              className={`text-lg font-poppins font-bold ${
-                                hasVotes ? "text-primary-600" : "text-gray-400"
-                              }`}
-                            >
-                              {hasVotes ? leader.votes : "0"}
-                            </p>
-                            <p className="text-xs font-montserrat text-gray-500">
-                              votes
-                            </p>
+                            ))}
                           </div>
                         </div>
-                      </div>
-                    );
-                  })}
+                      ))}
+                    </div>
+                  )}
                 </div>
-              )}
-            </div>
-          </div>
-        )}
+              </div>
+            )}
 
-        {/* Navigation Tabs */}
-        <div
-          className="mt-8 bg-white/80 backdrop-blur-sm rounded-2xl shadow-card border border-white/60 p-2 animate-slideUp"
-          style={{ animationDelay: "0.7s" }}
-        >
-          <div className="flex space-x-2">
-            <button
-              onClick={() => setActiveTab("dashboard")}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
-                activeTab === "dashboard"
-                  ? "bg-primary-600 text-white shadow-md"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <ChartBarIcon className="h-5 w-5" />
-              <span>Dashboard</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("voters")}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
-                activeTab === "voters"
-                  ? "bg-primary-600 text-white shadow-md"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <UsersIcon className="h-5 w-5" />
-              <span>Manage Voters</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("results")}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
-                activeTab === "results"
-                  ? "bg-primary-600 text-white shadow-md"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <TrophyIcon className="h-5 w-5" />
-              <span>Results</span>
-            </button>
-            <button
-              onClick={() => setActiveTab("settings")}
-              className={`flex items-center space-x-2 px-6 py-3 rounded-xl font-montserrat font-medium transition-all duration-200 ${
-                activeTab === "settings"
-                  ? "bg-primary-600 text-white shadow-md"
-                  : "text-gray-600 hover:text-primary-600 hover:bg-primary-50"
-              }`}
-            >
-              <Cog6ToothIcon className="h-5 w-5" />
-              <span>Settings</span>
-            </button>
+            {activeTab === "voters" && <VoterManagement />}
           </div>
         </div>
-
-        {/* Tab Content */}
-        <div className="mt-8">
-          {activeTab === "voters" && <VoterManagement />}
-
-          {activeTab === "results" && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 text-center">
-              <div className="w-16 h-16 bg-yellow-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <TrophyIcon className="h-8 w-8 text-yellow-600" />
+      </div>
+      
+      {/* Election Modal */}
+      {showElectionModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+            <h3 className="text-xl font-poppins font-bold text-gray-900 mb-4">
+              Schedule Election
+            </h3>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
+                  Start Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={electionForm.startTime}
+                  onChange={(e) => setElectionForm({...electionForm, startTime: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
+                />
               </div>
-              <h3 className="text-xl font-poppins font-bold text-gray-900 mb-2">
-                Election Results
-              </h3>
-              <p className="text-gray-600 font-montserrat">
-                Detailed results and analytics will be available here.
-              </p>
-            </div>
-          )}
-
-          {activeTab === "settings" && (
-            <div className="bg-white/80 backdrop-blur-sm rounded-3xl shadow-card border border-white/60 p-8 text-center">
-              <div className="w-16 h-16 bg-purple-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-                <Cog6ToothIcon className="h-8 w-8 text-purple-600" />
+              
+              <div>
+                <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
+                  End Time
+                </label>
+                <input
+                  type="datetime-local"
+                  value={electionForm.endTime}
+                  onChange={(e) => setElectionForm({...electionForm, endTime: e.target.value})}
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
+                />
               </div>
-              <h3 className="text-xl font-poppins font-bold text-gray-900 mb-2">
-                System Settings
-              </h3>
-              <p className="text-gray-600 font-montserrat">
-                Election configuration and system settings.
-              </p>
             </div>
-          )}
+            
+            <div className="mt-6 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowElectionModal(false)}
+                className="px-4 py-2 text-gray-700 font-montserrat font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleStartElection}
+                className="px-4 py-2 bg-primary-600 text-white font-montserrat font-medium rounded-lg hover:bg-primary-700 transition-colors"
+              >
+                Start Election
+              </button>
+            </div>
+          </div>
         </div>
-      </main>
+      )}
     </div>
   );
 };

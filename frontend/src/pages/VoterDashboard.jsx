@@ -6,13 +6,16 @@ import {
   ExclamationTriangleIcon,
   SparklesIcon,
   FireIcon,
+  CalendarIcon,
 } from "@heroicons/react/24/outline";
-import { candidatesAPI, votesAPI } from "../services/api";
+import { candidatesAPI, votesAPI, electionAPI } from "../services/api";
 import Header from "../components/common/Header";
 import CandidateCard from "../components/voter/CandidateCard";
 import VotingModal from "../components/voter/VotingModal";
 import LoadingSpinner from "../components/common/LoadingSpinner";
+import CountdownTimer from "../components/common/CountdownTimer";
 import { useAuth } from "../context/AuthContext";
+import { io } from "socket.io-client";
 
 const VoterDashboard = () => {
   const { user } = useAuth();
@@ -25,29 +28,57 @@ const VoterDashboard = () => {
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
   const [castingVote, setCastingVote] = useState(false);
-  const [selectedCandidates, setSelectedCandidates] = useState({}); // Track selected candidates for voting
+  const [selectedCandidates, setSelectedCandidates] = useState({});
+  const [electionStatus, setElectionStatus] = useState(null);
+  const [socket, setSocket] = useState(null);
+
+  useEffect(() => {
+    // Initialize socket connection
+    const newSocket = io("http://localhost:5000");
+    setSocket(newSocket);
+
+    // Listen for election status updates
+    newSocket.on("electionStatusUpdate", (updatedElection) => {
+      setElectionStatus(updatedElection);
+    });
+
+    // Listen for vote cast events
+    newSocket.on("voteCast", (voteData) => {
+      // Refresh vote status when a vote is cast
+      fetchVoteStatus();
+    });
+
+    return () => {
+      newSocket.close();
+    };
+  }, []);
+
+  const fetchVoteStatus = async () => {
+    try {
+      const votesRes = await votesAPI.getMyVotes();
+      setVotingStatus(votesRes.data);
+    } catch (err) {
+      console.error("Error fetching vote status:", err);
+    }
+  };
 
   useEffect(() => {
     const fetchData = async () => {
       try {
-        const [candidatesRes, votesRes] = await Promise.all([
+        // Fetch all data in parallel
+        const [candidatesRes, votesRes, electionRes] = await Promise.all([
           candidatesAPI.getAll(),
           votesAPI.getMyVotes(),
+          electionAPI.getStatus()
         ]);
 
         setCandidates(candidatesRes.data);
         setVotingStatus(votesRes.data);
-        
-        // Initialize selectedCandidates state
-        const initialSelected = {};
-        Object.keys(candidatesRes.data).forEach(position => {
-          initialSelected[position] = null; // No candidate selected initially
-        });
-        setSelectedCandidates(initialSelected);
-        
-        setLoading(false);
+        setElectionStatus(electionRes.data.election);
       } catch (err) {
-        setError("Failed to load data");
+        setError("Failed to load data: " + (err.message || "Unknown error"));
+        console.error("Error fetching data:", err);
+      } finally {
         setLoading(false);
       }
     };
@@ -75,6 +106,12 @@ const VoterDashboard = () => {
     // Check if user has already voted
     if (votingStatus.votedPositions.length > 0) {
       setError("You have already voted. Duplicate voting is not allowed.");
+      return;
+    }
+
+    // Check if election is active
+    if (!electionStatus || electionStatus.status !== 'ongoing') {
+      setError("Voting is not currently active.");
       return;
     }
 
@@ -122,28 +159,102 @@ const VoterDashboard = () => {
 
   // Check if all positions have a selected candidate
   const allPositionsHaveSelection = Object.values(selectedCandidates).every(
-    candidateId => candidateId !== null
+    candidateId => candidateId !== null && candidateId !== undefined
   );
 
-  if (loading)
-    return <LoadingSpinner message="Loading your voting dashboard..." />;
+  if (loading) return <LoadingSpinner />;
+
+  // Check if election is active
+  const isElectionActive = electionStatus && electionStatus.status === 'ongoing';
+  const isElectionPaused = electionStatus && electionStatus.status === 'paused';
+  const isElectionCompleted = electionStatus && electionStatus.status === 'completed';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
-      {/* Header */}
       <Header />
-
-      {/* Background Elements */}
-      <div className="fixed inset-0 overflow-hidden pointer-events-none">
-        <div className="absolute top-20 right-10 w-32 h-32 bg-gradient-to-br from-primary-200 to-primary-300 rounded-full opacity-10 animate-float"></div>
-        <div
-          className="absolute bottom-20 left-10 w-24 h-24 bg-gradient-to-tr from-secondary-200 to-secondary-300 rounded-full opacity-10 animate-float"
-          style={{ animationDelay: "3s" }}
-        ></div>
-      </div>
-
-      {/* Main Content */}
-      <main className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Election Status Banner */}
+        {electionStatus && (
+          <div className="mb-8">
+            <div className={`rounded-2xl p-6 shadow-card border backdrop-blur-sm ${
+              isElectionActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+              isElectionPaused ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+              isElectionCompleted ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200' :
+              'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+            }`}>
+              <div className="flex flex-col md:flex-row md:items-center md:justify-between">
+                <div>
+                  <h2 className="text-xl font-poppins font-bold text-gray-900">
+                    {electionStatus.name}
+                  </h2>
+                  <p className="text-gray-600 font-montserrat mt-1">
+                    Status: <span className="font-semibold capitalize">{electionStatus.status.replace('_', ' ')}</span>
+                  </p>
+                </div>
+                
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-montserrat mt-2 md:mt-0 ${
+                  isElectionActive ? 'bg-green-100 text-green-800' : 
+                  isElectionPaused ? 'bg-yellow-100 text-yellow-800' : 
+                  isElectionCompleted ? 'bg-gray-100 text-gray-800' :
+                  'bg-blue-100 text-blue-800'
+                }`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${
+                    isElectionActive ? 'bg-green-500 animate-pulse' : 
+                    isElectionPaused ? 'bg-yellow-500' : 
+                    isElectionCompleted ? 'bg-gray-500' :
+                    'bg-blue-500'
+                  }`}></div>
+                  {isElectionActive ? 'Election Active' : 
+                   isElectionPaused ? 'Election Paused' : 
+                   isElectionCompleted ? 'Election Completed' :
+                   'Election Scheduled'}
+                </div>
+              </div>
+              
+              {electionStatus.startTime && electionStatus.endTime && (
+                <div className="mt-4 pt-4 border-t border-gray-200">
+                  <div className="flex flex-col sm:flex-row sm:space-x-6">
+                    <div className="flex items-center text-gray-600 font-montserrat">
+                      <CalendarIcon className="h-5 w-5 mr-2" />
+                      <span>Start: {new Date(electionStatus.startTime).toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center text-gray-600 font-montserrat mt-2 sm:mt-0">
+                      <ClockIcon className="h-5 w-5 mr-2" />
+                      <span>End: {new Date(electionStatus.endTime).toLocaleString()}</span>
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+            
+            {isElectionActive && electionStatus.endTime && (
+              <div className="mt-4">
+                <CountdownTimer electionStatus={electionStatus} />
+              </div>
+            )}
+          </div>
+        )}
+        
+        {/* Election Status Messages */}
+        {!isElectionActive && !isElectionPaused && electionStatus && (
+          <div className="mb-8 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-6 shadow-card border border-yellow-200">
+            <div className="flex items-start">
+              <ExclamationTriangleIcon className="h-6 w-6 text-yellow-600 flex-shrink-0 mt-1" />
+              <div className="ml-4">
+                <h3 className="font-poppins font-bold text-yellow-900">
+                  {isElectionCompleted ? "Election Has Ended" : "Election Not Active"}
+                </h3>
+                <p className="font-montserrat text-yellow-700 mt-1">
+                  {isElectionCompleted 
+                    ? "Thank you for participating. The election has concluded." 
+                    : "Voting is not currently active. Please check back later."}
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+        
         {/* Welcome Hero Section */}
         <div className="relative bg-gradient-to-r from-white via-blue-50/50 to-indigo-50/50 rounded-3xl shadow-card border border-white/60 backdrop-blur-sm p-8 mb-8 overflow-hidden animate-slideUp">
           {/* Decorative Elements */}
@@ -384,7 +495,7 @@ const VoterDashboard = () => {
                         <CandidateCard
                           candidate={candidate}
                           position={positionName}
-                          disabled={hasVoted(positionName)}
+                          disabled={hasVoted(positionName) || !isElectionActive}
                           onVote={() => handleSelectCandidate(candidate.id || candidate._id, positionName)}
                           isSelected={isSelected}
                         />
@@ -402,9 +513,9 @@ const VoterDashboard = () => {
         <div className="mt-12 text-center animate-fadeIn">
           <button
             onClick={() => setShowModal(true)}
-            disabled={castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0}
+            disabled={castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0 || !isElectionActive}
             className={`px-8 py-4 rounded-full font-poppins font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 ${
-              castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0
+              castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0 || !isElectionActive
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 hover:shadow-xl"
             }`}
@@ -431,8 +542,13 @@ const VoterDashboard = () => {
               You have already voted. Duplicate voting is not allowed.
             </p>
           )}
+          {!isElectionActive && (
+            <p className="text-sm font-montserrat text-red-600 mt-2">
+              Voting is not currently active.
+            </p>
+          )}
         </div>
-      </main>
+      </div>
 
       {/* Voting Confirmation Modal */}
       {showModal && (

@@ -60,4 +60,12 @@ export const adminAPI = {
   getRiggingStatus: (position) => api.get(`/admin/rigging-status/${position}`) // Get rigging status API
 };
 
+// Election API
+export const electionAPI = {
+  getStatus: () => api.get('/election/status'),
+  startElection: (electionData) => api.post('/election/start', electionData),
+  updateStatus: (statusData) => api.put('/election/status', statusData),
+  getLogs: (electionId) => api.get(`/election/logs/${electionId}`) // Add logs API
+};
+
 export default api;
