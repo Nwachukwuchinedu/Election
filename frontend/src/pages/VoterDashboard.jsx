@@ -24,9 +24,8 @@ const VoterDashboard = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [showModal, setShowModal] = useState(false);
-  const [selectedCandidate, setSelectedCandidate] = useState(null);
-  const [selectedPosition, setSelectedPosition] = useState("");
   const [castingVote, setCastingVote] = useState(false);
+  const [selectedCandidates, setSelectedCandidates] = useState({}); // Track selected candidates for voting
 
   useEffect(() => {
     const fetchData = async () => {
@@ -38,6 +37,14 @@ const VoterDashboard = () => {
 
         setCandidates(candidatesRes.data);
         setVotingStatus(votesRes.data);
+        
+        // Initialize selectedCandidates state
+        const initialSelected = {};
+        Object.keys(candidatesRes.data).forEach(position => {
+          initialSelected[position] = null; // No candidate selected initially
+        });
+        setSelectedCandidates(initialSelected);
+        
         setLoading(false);
       } catch (err) {
         setError("Failed to load data");
@@ -48,39 +55,56 @@ const VoterDashboard = () => {
     fetchData();
   }, []);
 
-  const handleVote = (candidate, position) => {
-    setSelectedCandidate(candidate);
-    setSelectedPosition(position);
-    setShowModal(true);
+  const handleSelectCandidate = (candidateId, position) => {
+    // If the candidate is already selected for this position, deselect them
+    if (selectedCandidates[position] === candidateId) {
+      setSelectedCandidates(prev => ({
+        ...prev,
+        [position]: null
+      }));
+    } else {
+      // Select this candidate for the position
+      setSelectedCandidates(prev => ({
+        ...prev,
+        [position]: candidateId
+      }));
+    }
   };
 
   const confirmVote = async () => {
-    if (!selectedCandidate || !selectedPosition) return;
+    // Check if user has already voted
+    if (votingStatus.votedPositions.length > 0) {
+      setError("You have already voted. Duplicate voting is not allowed.");
+      return;
+    }
 
     setCastingVote(true);
     try {
-      await votesAPI.castVote({
-        position: selectedPosition,
-        candidateId: selectedCandidate.id || selectedCandidate._id,
+      // Prepare votes data - one vote per position for the selected candidate
+      const votesForAllPositions = {};
+      Object.keys(selectedCandidates).forEach(position => {
+        if (selectedCandidates[position]) {
+          votesForAllPositions[position] = {
+            [selectedCandidates[position]]: 1 // One vote for the selected candidate
+          };
+        }
       });
 
-      // Update voting status
-      const updatedVotedPositions = [
-        ...votingStatus.votedPositions,
-        selectedPosition,
-      ];
-      const updatedAvailablePositions = votingStatus.availablePositions.filter(
-        (pos) => pos !== selectedPosition
-      );
+      // Cast votes for all positions
+      await votesAPI.castVote({
+        votesForAllPositions
+      });
 
+      // Update voting status to show all positions as voted
+      const allPositions = Object.keys(candidates);
       setVotingStatus({
-        votedPositions: updatedVotedPositions,
-        availablePositions: updatedAvailablePositions,
+        votedPositions: allPositions,
+        availablePositions: []
       });
 
       setShowModal(false);
     } catch (err) {
-      setError("Failed to cast vote");
+      setError("Failed to cast votes: " + (err.message || "Unknown error"));
     } finally {
       setCastingVote(false);
     }
@@ -95,6 +119,11 @@ const VoterDashboard = () => {
   const remainingVotes = votingStatus.availablePositions.length;
   const completionPercentage =
     totalPositions > 0 ? (votedPositions / totalPositions) * 100 : 0;
+
+  // Check if all positions have a selected candidate
+  const allPositionsHaveSelection = Object.values(selectedCandidates).every(
+    candidateId => candidateId !== null
+  );
 
   if (loading)
     return <LoadingSpinner message="Loading your voting dashboard..." />;
@@ -269,6 +298,46 @@ const VoterDashboard = () => {
           </div>
         )}
 
+        {/* Instructions */}
+        <div className="bg-blue-50 border border-blue-200 rounded-2xl p-6 mb-8">
+          <div className="flex items-start space-x-4">
+            <div className="flex-shrink-0 mt-1">
+              <ExclamationTriangleIcon className="h-6 w-6 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="font-poppins font-semibold text-blue-800 mb-2">
+                Important Voting Instructions
+              </h3>
+              <ul className="text-sm font-montserrat text-blue-700 space-y-2">
+                <li className="flex items-start space-x-2">
+                  <span className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                  <span>
+                    You must vote for <span className="font-bold">one candidate in each position</span> before submitting your votes
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                  <span>
+                    Click "Vote for [Candidate Name]" to select a candidate for each position
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                  <span>
+                    Click "Remove Vote" to deselect a candidate
+                  </span>
+                </li>
+                <li className="flex items-start space-x-2">
+                  <span className="mt-1 w-1.5 h-1.5 bg-blue-500 rounded-full flex-shrink-0"></span>
+                  <span>
+                    Once you submit your votes, you cannot change them
+                  </span>
+                </li>
+              </ul>
+            </div>
+          </div>
+        </div>
+
         {/* Positions & Candidates */}
         <div className="space-y-8">
           {Object.entries(candidates).map(
@@ -288,7 +357,7 @@ const VoterDashboard = () => {
                         {positionName}
                       </h2>
                       <p className="text-sm font-montserrat text-gray-600 mt-1">
-                        Choose your preferred candidate
+                        Select one candidate for this position
                       </p>
                     </div>
                   </div>
@@ -303,47 +372,76 @@ const VoterDashboard = () => {
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-                  {positionCandidates.map((candidate, candidateIndex) => (
-                    <div
-                      key={candidate.id || candidate._id}
-                      className="animate-scaleIn"
-                      style={{ animationDelay: `${0.1 * candidateIndex}s` }}
-                    >
-                      <CandidateCard
-                        candidate={candidate}
-                        position={positionName}
-                        disabled={hasVoted(positionName)}
-                        onVote={handleVote}
-                      />
-                    </div>
-                  ))}
+                  {positionCandidates.map((candidate, candidateIndex) => {
+                    const isSelected = selectedCandidates[positionName] === (candidate.id || candidate._id);
+                    
+                    return (
+                      <div
+                        key={candidate.id || candidate._id}
+                        className="animate-scaleIn"
+                        style={{ animationDelay: `${0.1 * candidateIndex}s` }}
+                      >
+                        <CandidateCard
+                          candidate={candidate}
+                          position={positionName}
+                          disabled={hasVoted(positionName)}
+                          onVote={() => handleSelectCandidate(candidate.id || candidate._id, positionName)}
+                          isSelected={isSelected}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
+
               </section>
             )
           )}
         </div>
 
-        {/* Call to Action */}
-        {remainingVotes > 0 && (
-          <div className="mt-12 text-center animate-fadeIn">
-            <div className="inline-flex items-center space-x-2 px-6 py-3 bg-gradient-to-r from-primary-500 to-secondary-500 text-white rounded-full shadow-glow animate-bounce-gentle">
-              <SparklesIcon className="h-5 w-5" />
-              <span className="font-poppins font-medium">
-                {remainingVotes} vote{remainingVotes !== 1 ? "s" : ""} remaining
-              </span>
-            </div>
-          </div>
-        )}
+        {/* Submit All Votes Button */}
+        <div className="mt-12 text-center animate-fadeIn">
+          <button
+            onClick={() => setShowModal(true)}
+            disabled={castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0}
+            className={`px-8 py-4 rounded-full font-poppins font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 ${
+              castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0
+                ? "bg-gray-400 cursor-not-allowed"
+                : "bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 hover:shadow-xl"
+            }`}
+          >
+            {castingVote ? (
+              <div className="flex items-center space-x-2">
+                <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                <span>Submitting Votes...</span>
+              </div>
+            ) : (
+              <div className="flex items-center space-x-2">
+                <TrophyIcon className="h-5 w-5" />
+                <span>Submit All Votes</span>
+              </div>
+            )}
+          </button>
+          {!allPositionsHaveSelection && (
+            <p className="text-sm font-montserrat text-gray-600 mt-2">
+              Select one candidate for each position to enable submission
+            </p>
+          )}
+          {votingStatus.votedPositions.length > 0 && (
+            <p className="text-sm font-montserrat text-red-600 mt-2">
+              You have already voted. Duplicate voting is not allowed.
+            </p>
+          )}
+        </div>
       </main>
 
       {/* Voting Confirmation Modal */}
       {showModal && (
         <VotingModal
-          candidate={selectedCandidate}
-          position={selectedPosition}
           onCancel={() => setShowModal(false)}
           onConfirm={confirmVote}
           loading={castingVote}
+          selectedCandidates={selectedCandidates}
+          candidates={candidates}
         />
       )}
     </div>

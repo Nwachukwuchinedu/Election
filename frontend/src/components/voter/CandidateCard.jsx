@@ -5,10 +5,11 @@ import {
   SparklesIcon,
   ArrowRightIcon,
   HeartIcon,
+  XMarkIcon,
 } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolidIcon } from "@heroicons/react/24/solid";
 
-const CandidateCard = ({ candidate, position, disabled, onVote }) => {
+const CandidateCard = ({ candidate, position, disabled, onVote, isSelected }) => {
   const [isHovered, setIsHovered] = useState(false);
   const [isLiked, setIsLiked] = useState(false);
   const [imageError, setImageError] = useState(false);
@@ -134,13 +135,15 @@ const CandidateCard = ({ candidate, position, disabled, onVote }) => {
                      transition-all duration-300 overflow-hidden ${
                        disabled
                          ? "bg-gray-200 text-gray-500 cursor-not-allowed"
+                         : isSelected
+                         ? "bg-red-500 text-white hover:bg-red-600 shadow-lg hover:shadow-xl"
                          : `bg-gradient-to-r from-primary-600 to-primary-700 text-white 
                  hover:from-primary-700 hover:to-primary-800 shadow-lg hover:shadow-xl
                  transform hover:-translate-y-0.5 active:translate-y-0`
                      }`}
         >
           {/* Button Background Animation */}
-          {!disabled && (
+          {!disabled && !isSelected && (
             <div className="absolute inset-0 bg-gradient-to-r from-secondary-500 to-primary-500 opacity-0 group-hover/btn:opacity-20 transition-opacity duration-300"></div>
           )}
 
@@ -149,6 +152,11 @@ const CandidateCard = ({ candidate, position, disabled, onVote }) => {
               <>
                 <CheckCircleIcon className="h-5 w-5" />
                 <span>Vote Cast</span>
+              </>
+            ) : isSelected ? (
+              <>
+                <XMarkIcon className="h-5 w-5" />
+                <span>Remove Vote</span>
               </>
             ) : (
               <>

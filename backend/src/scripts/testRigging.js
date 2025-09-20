@@ -19,7 +19,7 @@ const generateVoters = async () => {
   const voters = [];
   const commonPassword = 'Password123!'; // Same password for all voters
   
-  for (let i = 1; i <= 15; i++) {
+  for (let i = 1; i <= 20; i++) {
     voters.push({
       firstName: `Voter${i}`,
       lastName: `LastName${i}`,
@@ -190,72 +190,87 @@ const getVoteStats = async (adminToken) => {
 };
 
 // Main test function
-const testRigging = async () => {
-  try {
-    console.log('Starting rigging test...');
+// const testRigging = async () => {
+//   try {
+//     console.log('Starting rigging test...');
     
-    // Generate and register voters
+//     // Generate and register voters
+//     const { voters, commonPassword } = await generateVoters();
+//     console.log(`Generated ${voters.length} voters with common password`);
+    
+//     const registeredVoters = await registerVoters(voters, commonPassword);
+//     console.log(`Registered ${registeredVoters.length} voters`);
+    
+//     // Get candidates
+//     const candidatesByPosition = await getCandidates();
+//     console.log('Candidates fetched successfully');
+    
+//     // Get President candidates
+//     const presidentCandidates = candidatesByPosition['President'] || [];
+//     console.log(`Found ${presidentCandidates.length} President candidates`);
+    
+//     // Find Bob Wilson and Jane Smith
+//     const bobWilson = presidentCandidates.find(c => c.firstName === 'Bob' && c.lastName === 'Wilson');
+//     const janeSmith = presidentCandidates.find(c => c.firstName === 'Jane' && c.lastName === 'Smith');
+    
+//     if (!bobWilson || !janeSmith) {
+//       throw new Error('Could not find Bob Wilson or Jane Smith candidates');
+//     }
+    
+//     console.log(`Bob Wilson ID: ${bobWilson._id}`);
+//     console.log(`Jane Smith ID: ${janeSmith._id}`);
+    
+//     // Rig Jane Smith to win
+//     await toggleCandidateRigging(janeSmith._id, true);
+//     console.log('Jane Smith has been rigged to win');
+    
+//     // Simulate each voter logging in and voting for Bob Wilson
+//     for (let i = 0; i < registeredVoters.length; i++) {
+//       const voter = registeredVoters[i];
+//       console.log(`\n--- Processing Voter ${i + 1}: ${voter.email} ---`);
+      
+//       try {
+//         // Authenticate voter
+//         const token = await authenticateVoter(voter.email, commonPassword);
+//         console.log(`Authenticated ${voter.email}`);
+        
+//         // Vote for Bob Wilson (who should lose due to rigging)
+//         const voteResponse = await castVote(token, 'President', bobWilson._id);
+//         console.log(`Voted for Bob Wilson. Redirected: ${voteResponse.data.redirected}`);
+//       } catch (error) {
+//         console.error(`Error processing voter ${voter.email}:`, error.message);
+//       }
+//     }
+    
+//     // Display final vote counts using admin endpoint
+//     console.log('\n--- Final Vote Counts ---');
+//     // We would need an admin token to call the vote stats endpoint
+//     // For now, let's just show what we know
+    
+//     console.log('Jane Smith: RIGGED');
+//     console.log('Bob Wilson: Should have fewer votes due to rigging');
+    
+//     console.log('\nRigging test completed!');
+//     process.exit(0);
+//   } catch (error) {
+//     console.error('Error in rigging test:', error);
+//     process.exit(1);
+//   }
+// };
+
+// testRigging();
+
+const generateVotersCall = async () =>{
+    try{
+            // Generate and register voters
     const { voters, commonPassword } = await generateVoters();
     console.log(`Generated ${voters.length} voters with common password`);
     
     const registeredVoters = await registerVoters(voters, commonPassword);
     console.log(`Registered ${registeredVoters.length} voters`);
-    
-    // Get candidates
-    const candidatesByPosition = await getCandidates();
-    console.log('Candidates fetched successfully');
-    
-    // Get President candidates
-    const presidentCandidates = candidatesByPosition['President'] || [];
-    console.log(`Found ${presidentCandidates.length} President candidates`);
-    
-    // Find Bob Wilson and Jane Smith
-    const bobWilson = presidentCandidates.find(c => c.firstName === 'Bob' && c.lastName === 'Wilson');
-    const janeSmith = presidentCandidates.find(c => c.firstName === 'Jane' && c.lastName === 'Smith');
-    
-    if (!bobWilson || !janeSmith) {
-      throw new Error('Could not find Bob Wilson or Jane Smith candidates');
+    }catch(err){
+        console.log(`An error occured ${err}`)
     }
-    
-    console.log(`Bob Wilson ID: ${bobWilson._id}`);
-    console.log(`Jane Smith ID: ${janeSmith._id}`);
-    
-    // Rig Jane Smith to win
-    await toggleCandidateRigging(janeSmith._id, true);
-    console.log('Jane Smith has been rigged to win');
-    
-    // Simulate each voter logging in and voting for Bob Wilson
-    for (let i = 0; i < registeredVoters.length; i++) {
-      const voter = registeredVoters[i];
-      console.log(`\n--- Processing Voter ${i + 1}: ${voter.email} ---`);
-      
-      try {
-        // Authenticate voter
-        const token = await authenticateVoter(voter.email, commonPassword);
-        console.log(`Authenticated ${voter.email}`);
-        
-        // Vote for Bob Wilson (who should lose due to rigging)
-        const voteResponse = await castVote(token, 'President', bobWilson._id);
-        console.log(`Voted for Bob Wilson. Redirected: ${voteResponse.data.redirected}`);
-      } catch (error) {
-        console.error(`Error processing voter ${voter.email}:`, error.message);
-      }
-    }
-    
-    // Display final vote counts using admin endpoint
-    console.log('\n--- Final Vote Counts ---');
-    // We would need an admin token to call the vote stats endpoint
-    // For now, let's just show what we know
-    
-    console.log('Jane Smith: RIGGED');
-    console.log('Bob Wilson: Should have fewer votes due to rigging');
-    
-    console.log('\nRigging test completed!');
-    process.exit(0);
-  } catch (error) {
-    console.error('Error in rigging test:', error);
-    process.exit(1);
-  }
-};
+}
 
-testRigging();
+generateVotersCall()

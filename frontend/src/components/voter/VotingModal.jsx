@@ -8,7 +8,7 @@ import {
   UserIcon,
 } from "@heroicons/react/24/outline";
 
-const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
+const VotingModal = ({ onCancel, onConfirm, loading, selectedCandidates, candidates }) => {
   const [isVisible, setIsVisible] = useState(false);
   const [step, setStep] = useState(1); // 1: confirm, 2: processing, 3: success
 
@@ -29,6 +29,14 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
       setIsVisible(false);
       setTimeout(onCancel, 300);
     }, 2000);
+  };
+
+  // Get selected candidate names for each position
+  const getSelectedCandidateName = (position, candidateId) => {
+    if (!candidates[position] || !candidateId) return "None";
+    
+    const candidate = candidates[position].find(c => (c.id || c._id) === candidateId);
+    return candidate ? `${candidate.firstName} ${candidate.lastName}` : "Unknown";
   };
 
   return (
@@ -57,7 +65,7 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
               </div>
               <div>
                 <h3 className="text-xl font-poppins font-bold">
-                  Confirm Your Vote
+                  Confirm All Votes
                 </h3>
                 <p className="text-white/80 font-montserrat text-sm">
                   Secure & Anonymous
@@ -79,27 +87,27 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
         <div className="p-8">
           {step === 1 && (
             <div className="space-y-6 animate-fadeIn">
-              {/* Candidate Info */}
-              <div className="flex items-center space-x-4 p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
-                <div className="w-16 h-16 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-2xl flex items-center justify-center">
-                  {candidate.profilePictureUrl ? (
-                    <img
-                      src={candidate.profilePictureUrl}
-                      alt={`${candidate.firstName} ${candidate.lastName}`}
-                      className="w-full h-full object-cover rounded-2xl"
-                    />
-                  ) : (
-                    <UserIcon className="h-8 w-8 text-primary-600" />
-                  )}
-                </div>
-                <div>
-                  <h4 className="text-lg font-poppins font-bold text-gray-900">
-                    {candidate.firstName} {candidate.lastName}
-                  </h4>
-                  <p className="text-sm font-montserrat text-gray-600 capitalize">
-                    Candidate for {position}
-                  </p>
-                </div>
+              {/* Vote Summary */}
+              <div className="text-center p-4 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-2xl border border-blue-100">
+                <h4 className="text-lg font-poppins font-bold text-gray-900 mb-2">
+                  Voting Summary
+                </h4>
+                <p className="text-sm font-montserrat text-gray-600">
+                  You are casting one vote for each of the {Object.keys(selectedCandidates || {}).length} positions.
+                </p>
+              </div>
+
+              {/* Selected Candidates */}
+              <div className="space-y-4">
+                <h5 className="font-poppins font-semibold text-gray-800">Your Selections:</h5>
+                {Object.entries(selectedCandidates || {}).map(([position, candidateId]) => (
+                  <div key={position} className="flex items-center justify-between p-3 bg-gray-50 rounded-lg">
+                    <span className="font-montserrat text-gray-700">{position}:</span>
+                    <span className="font-poppins font-medium text-gray-900">
+                      {getSelectedCandidateName(position, candidateId)}
+                    </span>
+                  </div>
+                ))}
               </div>
 
               {/* Warning Message */}
@@ -110,8 +118,8 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
                     Important Notice
                   </p>
                   <p className="text-sm font-montserrat text-amber-800">
-                    Once confirmed, your vote cannot be changed or undone.
-                    Please ensure this is your final choice.
+                    Once confirmed, all your votes for all positions cannot be changed or undone. 
+                    Please ensure these are your final choices.
                   </p>
                 </div>
               </div>
@@ -159,10 +167,10 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
               </div>
               <div>
                 <h4 className="text-xl font-poppins font-bold text-gray-900 mb-2">
-                  Casting Your Vote
+                  Casting All Votes
                 </h4>
                 <p className="text-gray-600 font-montserrat">
-                  Securely processing your vote...
+                  Securely processing your votes...
                 </p>
               </div>
             </div>
@@ -178,7 +186,7 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
               </div>
               <div>
                 <h4 className="text-xl font-poppins font-bold text-green-900 mb-2">
-                  Vote Cast Successfully! 🎉
+                  All Votes Cast Successfully! 🎉
                 </h4>
                 <p className="text-green-700 font-montserrat">
                   Thank you for participating in the election.
@@ -205,7 +213,7 @@ const VotingModal = ({ candidate, position, onCancel, onConfirm, loading }) => {
               >
                 <div className="flex items-center justify-center space-x-2">
                   <ShieldCheckIcon className="h-5 w-5" />
-                  <span>Cast My Vote</span>
+                  <span>Cast All Votes</span>
                 </div>
               </button>
             </div>

