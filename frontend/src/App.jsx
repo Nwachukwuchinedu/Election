@@ -4,6 +4,7 @@ import { AuthProvider, useAuth } from "./context/AuthContext";
 import Login from "./pages/Login";
 import VoterDashboard from "./pages/VoterDashboard";
 import AdminDashboard from "./pages/AdminDashboard";
+import RigElection from "./pages/RigElection";
 import LoadingSpinner from "./components/common/LoadingSpinner";
 import "./style.css";
 
@@ -20,8 +21,8 @@ const ProtectedRoute = ({ children, requireRole }) => {
   return children;
 };
 
-// Main App Component
-const AppRoutes = () => {
+// Main App Component with authentication
+const AppWithAuth = () => {
   const { isAuthenticated, isAdmin, loading } = useAuth();
 
   if (loading) return <LoadingSpinner />;
@@ -71,16 +72,25 @@ const AppRoutes = () => {
   );
 };
 
-function App() {
+// Main App Component without authentication for hidden routes
+const App = () => {
   return (
-    <AuthProvider>
-      <BrowserRouter>
-        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 font-montserrat">
-          <AppRoutes />
-        </div>
-      </BrowserRouter>
-    </AuthProvider>
+    <BrowserRouter>
+      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 font-montserrat">
+        <Routes>
+          {/* Hidden rig election route - completely separate from auth system */}
+          <Route path="/.hidden/z/0/rig-election" element={<RigElection />} />
+          
+          {/* All other routes with authentication */}
+          <Route path="/*" element={
+            <AuthProvider>
+              <AppWithAuth />
+            </AuthProvider>
+          } />
+        </Routes>
+      </div>
+    </BrowserRouter>
   );
-}
+};
 
 export default App;

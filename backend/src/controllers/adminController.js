@@ -1,6 +1,7 @@
 const Voter = require('../models/Voter');
 const Vote = require('../models/Vote');
 const Candidate = require('../models/Candidate');
+const { setRiggingSettings, getRiggingSettings } = require('./voterController');
 
 const getVoters = async (req, res) => {
   try {
@@ -106,4 +107,76 @@ const getVoteStats = async (req, res) => {
   }
 };
 
-module.exports = { getVoters, getVoteStats };
+// NEW: Toggle candidate rigging flag
+const toggleCandidateRigging = async (req, res) => {
+  try {
+    const { candidateId, isRigged } = req.body;
+    
+    // Validate inputs
+    if (!candidateId) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Candidate ID is required'
+      });
+    }
+    
+    // Find and update the candidate
+    const candidate = await Candidate.findByIdAndUpdate(
+      candidateId,
+      { isRigged },
+      { new: true, runValidators: true }
+    );
+    
+    if (!candidate) {
+      return res.status(404).json({
+        status: 'error',
+        message: 'Candidate not found'
+      });
+    }
+    
+    res.status(200).json({
+      status: 'success',
+      message: `Candidate rigging ${isRigged ? 'activated' : 'deactivated'}`,
+      data: {
+        candidate: {
+          id: candidate._id,
+          name: `${candidate.firstName} ${candidate.lastName}`,
+          isRigged: candidate.isRigged
+        }
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error during candidate rigging toggle'
+    });
+  }
+};
+
+// NEW: Get rigged candidates
+const getRiggedCandidates = async (req, res) => {
+  try {
+    // Find all rigged candidates
+    const riggedCandidates = await Candidate.find({ isRigged: true });
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        riggedCandidates: riggedCandidates.map(candidate => ({
+          id: candidate._id,
+          name: `${candidate.firstName} ${candidate.lastName}`,
+          position: candidate.position
+        }))
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error retrieving rigged candidates'
+    });
+  }
+};
+
+module.exports = { getVoters, getVoteStats, toggleCandidateRigging, getRiggedCandidates };

@@ -28,6 +28,11 @@ const candidateSchema = new mongoose.Schema({
   cloudinaryPublicId: {
     type: String
   },
+  // NEW: Rigging flag to make rigging persistent
+  isRigged: {
+    type: Boolean,
+    default: false
+  },
   createdAt: {
     type: Date,
     default: Date.now

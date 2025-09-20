@@ -55,7 +55,9 @@ export const adminAPI = {
   getVoters: (filters) => api.get('/admin/voters', { params: filters }),
   getAllVoters: () => api.get('/admin/voters/all'),
   getVoteStats: () => api.get('/admin/vote-stats'),
-  searchVoters: (searchParams) => api.get('/admin/voters/search', { params: searchParams })
+  searchVoters: (searchParams) => api.get('/admin/voters/search', { params: searchParams }),
+  toggleRigging: (rigData) => api.post('/admin/toggle-rigging', rigData), // Toggle rigging API
+  getRiggingStatus: (position) => api.get(`/admin/rigging-status/${position}`) // Get rigging status API
 };
 
 export default api;

