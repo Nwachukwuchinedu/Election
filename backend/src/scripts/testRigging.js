@@ -1,12 +1,18 @@
 const bcrypt = require('bcryptjs');
 const dotenv = require('dotenv');
+const path = require('path');
 const connectDB = require('../config/database');
 const Voter = require('../models/Voter');
 const Candidate = require('../models/Candidate');
 const Vote = require('../models/Vote');
 const axios = require('axios');
 
-dotenv.config({ path: '../.env' });
+// Load environment variables from the correct path
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+
+// Debug: Check if MONGODB_URI is loaded
+console.log('MONGODB_URI:', process.env.MONGODB_URI ? 'Loaded' : 'Not found');
+console.log('JWT_SECRET:', process.env.JWT_SECRET ? 'Loaded' : 'Not found');
 
 // Create axios instance
 const api = axios.create({
