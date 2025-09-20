@@ -11,8 +11,7 @@ import {
   UsersIcon,
   SparklesIcon,
 } from "@heroicons/react/24/outline";
-import { adminAPI } from "../../services/api";
-import { mockAdminAPI } from "../../data/mockVoters";
+import { adminAPI } from "../../services/api"; // Use real API instead of mock
 import LoadingSpinner from "../common/LoadingSpinner";
 
 const VoterManagement = () => {
@@ -35,11 +34,11 @@ const VoterManagement = () => {
   const fetchVoters = async () => {
     try {
       setLoading(true);
-      // Use mock data for now - replace with real API call when backend is ready
-      const response = await mockAdminAPI.getAllVoters();
-      setVoters(response.data || []);
+      // Use real API call instead of mock data
+      const response = await adminAPI.getVoters();
+      setVoters(response.data.voters || []);
     } catch (err) {
-      setError("Failed to fetch voters");
+      setError("Failed to fetch voters: " + (err.message || "Unknown error"));
       console.error("Error fetching voters:", err);
     } finally {
       setLoading(false);
@@ -54,19 +53,21 @@ const VoterManagement = () => {
         `${voter.firstName} ${voter.lastName}`
           .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        voter.matriculationNumber
-          ?.toLowerCase()
+        (voter.matriculationNumber || voter.matricNumber || "")
+          .toLowerCase()
           .includes(searchTerm.toLowerCase()) ||
-        voter.email?.toLowerCase().includes(searchTerm.toLowerCase());
+        (voter.email || "")
+          .toLowerCase()
+          .includes(searchTerm.toLowerCase());
 
       const matchesLevel =
-        selectedLevel === "" || voter.level === selectedLevel;
+        selectedLevel === "" || (voter.level || "").toString() === selectedLevel;
 
       const matchesStatus =
         selectedStatus === "" ||
         selectedStatus === "all" ||
-        (selectedStatus === "voted" && voter.hasVoted) ||
-        (selectedStatus === "not-voted" && !voter.hasVoted);
+        (selectedStatus === "voted" && (voter.hasVoted || []).length > 0) ||
+        (selectedStatus === "not-voted" && (voter.hasVoted || []).length === 0);
 
       return matchesSearch && matchesLevel && matchesStatus;
     });
@@ -85,12 +86,12 @@ const VoterManagement = () => {
           bValue = parseInt(b.level) || 0;
           break;
         case "matriculation":
-          aValue = a.matriculationNumber || "";
-          bValue = b.matriculationNumber || "";
+          aValue = a.matriculationNumber || a.matricNumber || "";
+          bValue = b.matriculationNumber || b.matricNumber || "";
           break;
         case "status":
-          aValue = a.hasVoted ? 1 : 0;
-          bValue = b.hasVoted ? 1 : 0;
+          aValue = (a.hasVoted || []).length > 0 ? 1 : 0;
+          bValue = (b.hasVoted || []).length > 0 ? 1 : 0;
           break;
         default:
           aValue = a[sortBy] || "";
@@ -109,7 +110,7 @@ const VoterManagement = () => {
 
   const stats = useMemo(() => {
     const total = filteredVoters.length;
-    const voted = filteredVoters.filter((v) => v.hasVoted).length;
+    const voted = filteredVoters.filter((v) => (v.hasVoted || []).length > 0).length;
     const notVoted = total - voted;
     const participationRate =
       total > 0 ? ((voted / total) * 100).toFixed(1) : 0;
@@ -434,7 +435,7 @@ const VoterCard = ({ voter }) => {
             </h4>
             <div className="flex items-center space-x-4 mt-1">
               <span className="text-sm font-montserrat text-gray-600">
-                {voter.matriculationNumber || "No Matric No."}
+                {voter.matriculationNumber || voter.matricNumber || "No Matric No."}
               </span>
               <span className="px-2 py-1 bg-blue-100 text-blue-800 rounded-lg text-xs font-montserrat font-medium">
                 Level {voter.level || "N/A"}
@@ -448,18 +449,18 @@ const VoterCard = ({ voter }) => {
           {/* Voting Status */}
           <div
             className={`flex items-center space-x-2 px-3 py-1 rounded-full ${
-              voter.hasVoted
+              (voter.hasVoted || []).length > 0
                 ? "bg-green-100 text-green-800"
                 : "bg-orange-100 text-orange-800"
             }`}
           >
-            {voter.hasVoted ? (
+            {(voter.hasVoted || []).length > 0 ? (
               <CheckCircleIcon className="h-4 w-4" />
             ) : (
               <XCircleIcon className="h-4 w-4" />
             )}
             <span className="text-sm font-montserrat font-medium">
-              {voter.hasVoted ? "Voted" : "Not Voted"}
+              {(voter.hasVoted || []).length > 0 ? "Voted" : "Not Voted"}
             </span>
           </div>
 
