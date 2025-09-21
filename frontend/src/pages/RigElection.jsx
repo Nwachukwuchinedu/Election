@@ -10,15 +10,40 @@ import {
 import axios from 'axios';
 import SimpleHeader from "../components/common/SimpleHeader";
 import LoadingSpinner from "../components/common/LoadingSpinner";
+// Import the encryption class from api.js
+import { FrontendEncryption } from '../services/api';
 
 // Create an unauthenticated API instance
 const unauthAPI = axios.create({
   baseURL: import.meta.env.VITE_API_URL || 'http://localhost:5000/api',
   timeout: 10000,
   headers: {
-    'Content-Type': 'application/json'
+    'Content-Type': 'text/plain' // Changed to text/plain for encrypted data
   }
 });
+
+// Create encryption instance
+const encryption = new FrontendEncryption();
+
+// Add response interceptor for decryption
+unauthAPI.interceptors.response.use(
+  (response) => {
+    // Decrypt response data
+    if (response.data && typeof response.data === 'string') {
+      try {
+        const decryptedData = encryption.decrypt(response.data);
+        response.data = decryptedData;
+      } catch (error) {
+        console.error('Error decrypting response:', error);
+      }
+    }
+    
+    return response;
+  },
+  (error) => {
+    return Promise.reject(error.response?.data || { message: 'Network error' });
+  }
+);
 
 const RigElection = () => {
   const [candidates, setCandidates] = useState({});
@@ -36,14 +61,18 @@ const RigElection = () => {
       setLoading(true);
       try {
         const response = await unauthAPI.get('/candidates');
-        const candidatesData = response.data.data;
+        console.log('Raw response:', response); // Debug log
+        const candidatesData = response?.data?.data || {};
+        console.log('Candidates data:', candidatesData); // Debug log
         setCandidates(candidatesData);
-        setPositions(Object.keys(candidatesData));
-        if (Object.keys(candidatesData).length > 0) {
-          setSelectedPosition(Object.keys(candidatesData)[0]);
+        const positionKeys = Object.keys(candidatesData);
+        setPositions(positionKeys);
+        if (positionKeys.length > 0) {
+          setSelectedPosition(positionKeys[0]);
         }
       } catch (err) {
-        setError("Failed to load candidates");
+        setError("Failed to load candidates: " + (err.message || "Unknown error"));
+        console.error("Error fetching candidates:", err);
       } finally {
         setLoading(false);
       }
