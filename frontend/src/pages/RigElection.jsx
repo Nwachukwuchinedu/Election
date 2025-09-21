@@ -61,9 +61,7 @@ const RigElection = () => {
       setLoading(true);
       try {
         const response = await unauthAPI.get('/candidates');
-        console.log('Raw response:', response); // Debug log
         const candidatesData = response?.data?.data || {};
-        console.log('Candidates data:', candidatesData); // Debug log
         setCandidates(candidatesData);
         const positionKeys = Object.keys(candidatesData);
         setPositions(positionKeys);
