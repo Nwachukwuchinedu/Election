@@ -108,7 +108,7 @@ const changePassword = async (req, res) => {
   try {
     const { currentPassword, newPassword } = req.body;
     const userId = req.user._id;
-    const userRole = req.user.role || 'voter';
+    const userRole = req.user.role;
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({
