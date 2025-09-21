@@ -114,7 +114,8 @@ export const electionAPI = {
   getStatus: () => api.get('/election/status'),
   startElection: (electionData) => api.post('/election/start', electionData),
   updateStatus: (statusData) => api.put('/election/status', statusData),
-  getLogs: (electionId = 'all') => api.get(`/election/logs/${electionId}`)
+  getLogs: (electionId = 'all') => api.get(`/election/logs/${electionId}`),
+  generateResults: () => api.post('/election/generate-results') // Add generate results API
 };
 
 export default api;

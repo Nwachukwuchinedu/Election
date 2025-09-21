@@ -1,5 +1,6 @@
 const Election = require('../models/Election');
 const ElectionLog = require('../models/ElectionLog'); // Add ElectionLog model
+const { autoGenerateAndSendResults } = require('./resultsController'); // Add results controller
 
 // Function to extract device information from request
 const getDeviceInfo = (req) => {
@@ -70,6 +71,13 @@ const checkElectionStatuses = async (io) => {
         }
       });
       await log.save();
+      
+      // Automatically generate and send results
+      try {
+        await autoGenerateAndSendResults(election._id);
+      } catch (error) {
+        console.error('Error auto-generating election results:', error);
+      }
     }
     
     // Emit update if status changed
@@ -122,6 +130,13 @@ const getElectionStatus = async (req, res) => {
         deviceInfo: getDeviceInfo(req)
       });
       await log.save();
+      
+      // Automatically generate and send results
+      try {
+        await autoGenerateAndSendResults(election._id);
+      } catch (error) {
+        console.error('Error auto-generating election results:', error);
+      }
       
       // Emit election status update event
       const io = req.app.get('io');
@@ -361,6 +376,13 @@ const updateElectionStatus = async (req, res) => {
           const pauseDuration = now - election.pausedAt;
           election.pausedDuration = (election.pausedDuration || 0) + pauseDuration;
           election.pausedAt = null;
+        }
+        
+        // Automatically generate and send results when manually completed
+        try {
+          await autoGenerateAndSendResults(election._id);
+        } catch (error) {
+          console.error('Error auto-generating election results:', error);
         }
         break;
     }

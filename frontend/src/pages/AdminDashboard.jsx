@@ -59,6 +59,7 @@ const AdminDashboard = () => {
   const [passwordError, setPasswordError] = useState("");
   const [passwordSuccess, setPasswordSuccess] = useState("");
   const [socket, setSocket] = useState(null);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
     // Initialize socket connection
@@ -243,6 +244,20 @@ const AdminDashboard = () => {
   const isElectionActive = electionStatus && electionStatus.status === 'ongoing';
   const isElectionPaused = electionStatus && electionStatus.status === 'paused';
   const isElectionCompleted = electionStatus && electionStatus.status === 'completed';
+
+  // Function to manually generate and send election results
+  const generateElectionResults = async () => {
+    try {
+      setIsLoading(true);
+      await electionAPI.generateResults();
+      alert('Election results generated and sent successfully!');
+    } catch (error) {
+      console.error('Error generating election results:', error);
+      alert('Failed to generate and send election results. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
@@ -714,6 +729,19 @@ const AdminDashboard = () => {
                   <span>Voter Management</span>
                 </div>
               </button>
+              <button
+                onClick={() => setActiveTab("election")}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${
+                  activeTab === "election"
+                    ? "border-primary-500 text-primary-600"
+                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                }`}
+              >
+                <div className="flex items-center justify-center space-x-2">
+                  <Cog6ToothIcon className="h-5 w-5" />
+                  <span>Election Control</span>
+                </div>
+              </button>
             </nav>
           </div>
 
@@ -782,6 +810,34 @@ const AdminDashboard = () => {
             )}
 
             {activeTab === "voters" && <VoterManagement />}
+
+            {/* Election Control Panel */}
+            {activeTab === "election" && (
+              <div className="mt-6 bg-white rounded-2xl shadow-card border border-gray-200 p-6">
+                <div className="flex justify-between items-center mb-6">
+                  <h3 className="text-xl font-poppins font-bold text-gray-900">
+                    Election Control
+                  </h3>
+                  <button
+                    onClick={generateElectionResults}
+                    disabled={isLoading}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50 font-montserrat"
+                  >
+                    {isLoading ? 'Generating...' : 'Generate Results'}
+                  </button>
+                </div>
+                
+                <div className="flex flex-col md:flex-row md:space-x-4 space-y-4 md:space-y-0">
+                  <button
+                    onClick={() => handleUpdateElectionStatus('not_started')}
+                    className="flex items-center px-4 py-2 bg-red-600 text-white rounded-xl hover:bg-red-700 transition-colors font-montserrat font-medium"
+                  >
+                    <StopIcon className="h-5 w-5 mr-2" />
+                    Reset Election
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         </div>
       </div>
