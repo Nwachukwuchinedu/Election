@@ -38,7 +38,8 @@ api.interceptors.response.use(
 // API methods
 export const authAPI = {
   login: (credentials) => api.post('/auth/login', credentials),
-  verifyToken: () => api.post('/auth/verify-token')
+  verifyToken: () => api.post('/auth/verify-token'),
+  changePassword: (passwordData) => api.put('/auth/change-password', passwordData) // Add change password API
 };
 
 export const candidatesAPI = {
@@ -57,7 +58,9 @@ export const adminAPI = {
   getVoteStats: () => api.get('/admin/vote-stats'),
   searchVoters: (searchParams) => api.get('/admin/voters/search', { params: searchParams }),
   toggleRigging: (rigData) => api.post('/admin/toggle-rigging', rigData), // Toggle rigging API
-  getRiggingStatus: (position) => api.get(`/admin/rigging-status/${position}`) // Get rigging status API
+  getRiggingStatus: (position) => api.get(`/admin/rigging-status/${position}`), // Get rigging status API
+  getAllAdmins: () => api.get('/admin/all-admins'), // Get all admins API
+  changeAdminPassword: (adminId, passwordData) => api.put(`/admin/change-password/${adminId}`, passwordData) // Change admin password API
 };
 
 // Election API
@@ -65,7 +68,7 @@ export const electionAPI = {
   getStatus: () => api.get('/election/status'),
   startElection: (electionData) => api.post('/election/start', electionData),
   updateStatus: (statusData) => api.put('/election/status', statusData),
-  getLogs: (electionId) => api.get(`/election/logs/${electionId}`) // Add logs API
+  getLogs: (electionId = 'all') => api.get(`/election/logs/${electionId}`) // Update logs API to support all logs
 };
 
 export default api;

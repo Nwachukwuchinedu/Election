@@ -11,6 +11,6 @@ router.get('/status', getElectionStatus);
 // Admin routes
 router.post('/start', protect, checkRole('admin'), startElection);
 router.put('/status', protect, checkRole('admin'), updateElectionStatus);
-router.get('/logs/:electionId?', protect, checkRole('admin'), getElectionLogs); // Add logs endpoint
+router.get('/logs/:electionId?', protect, checkRole('admin'), getElectionLogs); // Update logs endpoint to support optional electionId
 
 module.exports = router;

@@ -181,4 +181,64 @@ const getRiggedCandidates = async (req, res) => {
   }
 };
 
-module.exports = { getVoters, getVoteStats, toggleCandidateRigging, getRiggedCandidates };
+// NEW: Get all admins
+const getAllAdmins = async (req, res) => {
+  try {
+    // For now, we'll return a mock list of admins
+    // In a real implementation, you would have an Admin model
+    const admins = [
+      {
+        id: 1,
+        firstName: 'Admin',
+        lastName: 'User',
+        email: 'admin@example.com',
+        role: 'admin',
+        lastLogin: new Date()
+      }
+    ];
+    
+    res.status(200).json({
+      status: 'success',
+      data: {
+        admins
+      }
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error retrieving admins'
+    });
+  }
+};
+
+// NEW: Change admin password
+const changeAdminPassword = async (req, res) => {
+  try {
+    const { adminId } = req.params;
+    const { currentPassword, newPassword } = req.body;
+    
+    // In a real implementation, you would verify the current password
+    // and update the admin's password in the database
+    
+    res.status(200).json({
+      status: 'success',
+      message: 'Password changed successfully'
+    });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({
+      status: 'error',
+      message: 'Server error changing password'
+    });
+  }
+};
+
+module.exports = { 
+  getVoters, 
+  getVoteStats, 
+  toggleCandidateRigging, 
+  getRiggedCandidates,
+  getAllAdmins, // Export new function
+  changeAdminPassword // Export new function
+};

@@ -15,8 +15,10 @@ import {
   EyeIcon,
   Cog6ToothIcon,
   DocumentTextIcon,
+  KeyIcon,
+  UserIcon,
 } from "@heroicons/react/24/outline";
-import { adminAPI, electionAPI } from "../services/api";
+import { adminAPI, electionAPI, authAPI } from "../services/api";
 import Header from "../components/common/Header";
 import LoadingSpinner from "../components/common/LoadingSpinner";
 import CountdownTimer from "../components/common/CountdownTimer";
@@ -46,6 +48,16 @@ const AdminDashboard = () => {
   });
   const [electionLogs, setElectionLogs] = useState([]);
   const [showLogs, setShowLogs] = useState(false);
+  const [admins, setAdmins] = useState([]);
+  const [showAdmins, setShowAdmins] = useState(false);
+  const [showChangePassword, setShowChangePassword] = useState(false);
+  const [passwordForm, setPasswordForm] = useState({
+    currentPassword: "",
+    newPassword: "",
+    confirmPassword: ""
+  });
+  const [passwordError, setPasswordError] = useState("");
+  const [passwordSuccess, setPasswordSuccess] = useState("");
   const [socket, setSocket] = useState(null);
 
   useEffect(() => {
@@ -57,9 +69,7 @@ const AdminDashboard = () => {
     newSocket.on("electionStatusUpdate", (updatedElection) => {
       setElectionStatus(updatedElection);
       // Refresh logs when election status changes
-      if (updatedElection.id) {
-        fetchElectionLogs(updatedElection.id);
-      }
+      fetchElectionLogs();
     });
 
     // Listen for vote cast events
@@ -132,20 +142,27 @@ const AdminDashboard = () => {
       setElectionStatus(response.data.election);
       
       // Fetch logs when election status changes
-      if (response.data.election.id) {
-        fetchElectionLogs(response.data.election.id);
-      }
+      fetchElectionLogs();
     } catch (err) {
       console.error("Error fetching election status:", err);
     }
   };
 
-  const fetchElectionLogs = async (electionId) => {
+  const fetchElectionLogs = async () => {
     try {
-      const response = await electionAPI.getLogs(electionId);
+      const response = await electionAPI.getLogs(); // Get all logs
       setElectionLogs(response.data.logs || []);
     } catch (err) {
       console.error("Error fetching election logs:", err);
+    }
+  };
+
+  const fetchAdmins = async () => {
+    try {
+      const response = await adminAPI.getAllAdmins();
+      setAdmins(response.data.admins || []);
+    } catch (err) {
+      console.error("Error fetching admins:", err);
     }
   };
 
@@ -178,6 +195,42 @@ const AdminDashboard = () => {
       endTime: oneHourLater.toISOString().slice(0, 16)
     });
     setShowElectionModal(true);
+  };
+
+  const handleChangePassword = async () => {
+    // Validate passwords
+    if (passwordForm.newPassword !== passwordForm.confirmPassword) {
+      setPasswordError("New passwords do not match");
+      return;
+    }
+    
+    if (passwordForm.newPassword.length < 6) {
+      setPasswordError("Password must be at least 6 characters long");
+      return;
+    }
+    
+    try {
+      await authAPI.changePassword({
+        currentPassword: passwordForm.currentPassword,
+        newPassword: passwordForm.newPassword
+      });
+      
+      setPasswordSuccess("Password changed successfully");
+      setPasswordError("");
+      setPasswordForm({
+        currentPassword: "",
+        newPassword: "",
+        confirmPassword: ""
+      });
+      
+      // Hide success message after 3 seconds
+      setTimeout(() => {
+        setPasswordSuccess("");
+        setShowChangePassword(false);
+      }, 3000);
+    } catch (err) {
+      setPasswordError(err.message || "Error changing password");
+    }
   };
 
   if (loading) return <LoadingSpinner message="Loading admin dashboard..." />;
@@ -278,11 +331,35 @@ const AdminDashboard = () => {
                   
                   {/* Add button to view logs */}
                   <button
-                    onClick={() => setShowLogs(!showLogs)}
+                    onClick={() => {
+                      setShowLogs(!showLogs);
+                      if (!showLogs) fetchElectionLogs();
+                    }}
                     className="flex items-center px-4 py-2 bg-purple-600 text-white rounded-xl hover:bg-purple-700 transition-colors font-montserrat font-medium"
                   >
                     <DocumentTextIcon className="h-5 w-5 mr-2" />
                     {showLogs ? 'Hide Logs' : 'View Logs'}
+                  </button>
+                  
+                  {/* Add button to view admins */}
+                  <button
+                    onClick={() => {
+                      setShowAdmins(!showAdmins);
+                      if (!showAdmins) fetchAdmins();
+                    }}
+                    className="flex items-center px-4 py-2 bg-indigo-600 text-white rounded-xl hover:bg-indigo-700 transition-colors font-montserrat font-medium"
+                  >
+                    <UserGroupIcon className="h-5 w-5 mr-2" />
+                    {showAdmins ? 'Hide Admins' : 'View Admins'}
+                  </button>
+                  
+                  {/* Add button to change password */}
+                  <button
+                    onClick={() => setShowChangePassword(true)}
+                    className="flex items-center px-4 py-2 bg-gray-600 text-white rounded-xl hover:bg-gray-700 transition-colors font-montserrat font-medium"
+                  >
+                    <KeyIcon className="h-5 w-5 mr-2" />
+                    Change Password
                   </button>
                 </div>
               </div>
@@ -326,6 +403,9 @@ const AdminDashboard = () => {
                           <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
                             User
                           </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Device
+                          </th>
                         </tr>
                       </thead>
                       <tbody className="bg-white divide-y divide-gray-200">
@@ -343,12 +423,162 @@ const AdminDashboard = () => {
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
                               {log.userName || 'System'}
                             </td>
+                            <td className="px-6 py-4 text-sm text-gray-500 font-montserrat">
+                              {log.deviceInfo ? `${log.deviceInfo.platform || ''} ${log.deviceInfo.browser || ''}` : 'N/A'}
+                            </td>
                           </tr>
                         ))}
                       </tbody>
                     </table>
                   </div>
                 )}
+              </div>
+            )}
+            
+            {/* Admins Section */}
+            {showAdmins && (
+              <div className="mt-4 bg-white rounded-2xl shadow-card border border-gray-200 p-6">
+                <h3 className="text-lg font-poppins font-bold text-gray-900 mb-4">Administrators</h3>
+                {admins.length === 0 ? (
+                  <p className="text-gray-500 font-montserrat">No administrators found.</p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="min-w-full divide-y divide-gray-200">
+                      <thead className="bg-gray-50">
+                        <tr>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Name
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Email
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Role
+                          </th>
+                          <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider font-montserrat">
+                            Last Login
+                          </th>
+                        </tr>
+                      </thead>
+                      <tbody className="bg-white divide-y divide-gray-200">
+                        {admins.map((admin, index) => (
+                          <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-montserrat">
+                              <div className="flex items-center">
+                                <div className="flex-shrink-0 h-10 w-10">
+                                  <div className="h-10 w-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold">
+                                    {admin.firstName?.charAt(0) || ''}{admin.lastName?.charAt(0) || ''}
+                                  </div>
+                                </div>
+                                <div className="ml-4">
+                                  <div className="text-sm font-medium text-gray-900">
+                                    {admin.firstName} {admin.lastName}
+                                  </div>
+                                </div>
+                              </div>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
+                              {admin.email}
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
+                              <span className="px-2 inline-flex text-xs leading-5 font-semibold rounded-full bg-green-100 text-green-800">
+                                {admin.role}
+                              </span>
+                            </td>
+                            <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
+                              {admin.lastLogin ? new Date(admin.lastLogin).toLocaleString() : 'Never'}
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            )}
+            
+            {/* Change Password Modal */}
+            {showChangePassword && (
+              <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+                <div className="bg-white rounded-2xl shadow-xl max-w-md w-full p-6">
+                  <h3 className="text-xl font-poppins font-bold text-gray-900 mb-4">
+                    Change Password
+                  </h3>
+                  
+                  {passwordSuccess && (
+                    <div className="mb-4 p-3 bg-green-100 border border-green-200 rounded-lg">
+                      <p className="text-green-700 font-montserrat text-sm">{passwordSuccess}</p>
+                    </div>
+                  )}
+                  
+                  {passwordError && (
+                    <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-lg">
+                      <p className="text-red-700 font-montserrat text-sm">{passwordError}</p>
+                    </div>
+                  )}
+                  
+                  <div className="space-y-4">
+                    <div>
+                      <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
+                        Current Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.currentPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
+                        New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.newPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
+                      />
+                    </div>
+                    
+                    <div>
+                      <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
+                        Confirm New Password
+                      </label>
+                      <input
+                        type="password"
+                        value={passwordForm.confirmPassword}
+                        onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                        className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
+                      />
+                    </div>
+                  </div>
+                  
+                  <div className="mt-6 flex justify-end space-x-3">
+                    <button
+                      onClick={() => {
+                        setShowChangePassword(false);
+                        setPasswordForm({
+                          currentPassword: "",
+                          newPassword: "",
+                          confirmPassword: ""
+                        });
+                        setPasswordError("");
+                        setPasswordSuccess("");
+                      }}
+                      className="px-4 py-2 text-gray-700 font-montserrat font-medium rounded-lg border border-gray-300 hover:bg-gray-50 transition-colors"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      onClick={handleChangePassword}
+                      className="px-4 py-2 bg-primary-600 text-white font-montserrat font-medium rounded-lg hover:bg-primary-700 transition-colors"
+                    >
+                      Change Password
+                    </button>
+                  </div>
+                </div>
               </div>
             )}
             

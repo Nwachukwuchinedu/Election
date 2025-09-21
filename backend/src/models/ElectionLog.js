@@ -23,6 +23,15 @@ const electionLogSchema = new mongoose.Schema({
   },
   userName: {
     type: String
+  },
+  // Add device details
+  deviceInfo: {
+    type: {
+      userAgent: String,
+      platform: String,
+      browser: String,
+      ip: String
+    }
   }
 });
 

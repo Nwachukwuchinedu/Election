@@ -1,6 +1,16 @@
 const Election = require('../models/Election');
 const ElectionLog = require('../models/ElectionLog'); // Add ElectionLog model
 
+// Function to extract device information from request
+const getDeviceInfo = (req) => {
+  return {
+    userAgent: req.get('User-Agent') || '',
+    platform: req.get('User-Agent') ? req.get('User-Agent').match(/\(([^)]+)\)/)?.[1] || '' : '',
+    browser: req.get('User-Agent') ? req.get('User-Agent').split(' ')[0] || '' : '',
+    ip: req.ip || req.connection.remoteAddress || ''
+  };
+};
+
 // Function to check and update election statuses
 const checkElectionStatuses = async (io) => {
   try {
@@ -26,7 +36,13 @@ const checkElectionStatuses = async (io) => {
         action: 'started',
         details: 'Election automatically started as start time was reached',
         userId: null,
-        userName: 'System'
+        userName: 'System',
+        deviceInfo: {
+          userAgent: 'System Scheduler',
+          platform: 'Server',
+          browser: 'Node.js',
+          ip: 'localhost'
+        }
       });
       await log.save();
     }
@@ -45,7 +61,13 @@ const checkElectionStatuses = async (io) => {
         action: 'completed',
         details: 'Election automatically completed as end time was reached',
         userId: null,
-        userName: 'System'
+        userName: 'System',
+        deviceInfo: {
+          userAgent: 'System Scheduler',
+          platform: 'Server',
+          browser: 'Node.js',
+          ip: 'localhost'
+        }
       });
       await log.save();
     }
@@ -96,7 +118,8 @@ const getElectionStatus = async (req, res) => {
         action: 'completed',
         details: 'Election automatically completed as end time was reached',
         userId: null,
-        userName: 'System'
+        userName: 'System',
+        deviceInfo: getDeviceInfo(req)
       });
       await log.save();
       
@@ -147,19 +170,21 @@ const getElectionStatus = async (req, res) => {
   }
 };
 
-// Get election logs
+// Get election logs - now fetches logs for all elections
 const getElectionLogs = async (req, res) => {
   try {
     const { electionId } = req.params;
     let query = {};
     
-    if (electionId) {
+    // If electionId is provided, filter by that election
+    // Otherwise, fetch all logs
+    if (electionId && electionId !== 'all') {
       query.electionId = electionId;
     }
     
     const logs = await ElectionLog.find(query)
       .sort({ timestamp: -1 })
-      .limit(100); // Limit to 100 most recent logs
+      .limit(500); // Increase limit to show more historical logs
     
     res.status(200).json({
       status: 'success',
@@ -224,7 +249,8 @@ const startElection = async (req, res) => {
       action: 'created',
       details: `Election scheduled from ${start} to ${end}`,
       userId: req.user ? req.user._id : null,
-      userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'System'
+      userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'System',
+      deviceInfo: getDeviceInfo(req)
     });
     await log.save();
     
@@ -235,7 +261,8 @@ const startElection = async (req, res) => {
         action: 'started',
         details: 'Election started immediately',
         userId: req.user ? req.user._id : null,
-        userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'System'
+        userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'System',
+        deviceInfo: getDeviceInfo(req)
       });
       await startLog.save();
     }
@@ -349,7 +376,8 @@ const updateElectionStatus = async (req, res) => {
       action: status,
       details: `Election status changed from ${oldStatus} to ${status}`,
       userId: req.user ? req.user._id : null,
-      userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'System'
+      userName: req.user ? `${req.user.firstName} ${req.user.lastName}` : 'System',
+      deviceInfo: getDeviceInfo(req)
     });
     await log.save();
     
