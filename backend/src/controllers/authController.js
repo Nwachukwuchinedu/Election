@@ -106,9 +106,11 @@ const verifyToken = async (req, res) => {
 // Change password function
 const changePassword = async (req, res) => {
   try {
+    // Extract password fields from request body
     const { currentPassword, newPassword } = req.body;
+
     const userId = req.user._id;
-    const userRole = req.user.role;
+    const userRole = req.user.role || 'voter';
 
     if (!currentPassword || !newPassword) {
       return res.status(400).json({

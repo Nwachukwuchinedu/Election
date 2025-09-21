@@ -6,6 +6,8 @@ const errorHandler = require('./middleware/errorHandler');
 const http = require('http');
 const { Server } = require('socket.io');
 const { checkElectionStatuses } = require('./controllers/electionController');
+const { securityHeaders, requestLogger } = require('./middleware/securityMiddleware');
+const { encryptAllResponses, decryptAllRequests } = require('./middleware/encryptionMiddleware');
 
 // Load env vars
 dotenv.config();
@@ -22,11 +24,22 @@ const electionRoutes = require('./routes/election'); // Add election routes
 
 const app = express();
 
-// Body parser middleware
-app.use(express.json());
+// Security middleware
+app.use(securityHeaders);
+app.use(requestLogger);
 
-// Cors middleware
+// Enable CORS for all routes
 app.use(cors());
+
+// Body parser middleware (before decryption)
+app.use(express.json({ limit: '10mb' }));
+app.use(express.text({ limit: '10mb', type: 'text/plain' }));
+
+// Decryption middleware (after body parser)
+app.use(decryptAllRequests);
+
+// Encryption middleware (before routes)
+app.use(encryptAllResponses);
 
 // Create HTTP server
 const server = http.createServer(app);
