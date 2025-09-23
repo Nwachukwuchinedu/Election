@@ -766,18 +766,28 @@ const AdminDashboard = () => {
                               <div key={candidate._id} className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
                                   {/* Profile Image or Initials */}
-                                  {candidate.profilePictureUrl ? (
-                                    <img 
-                                      src={candidate.profilePictureUrl} 
-                                      alt={`${candidate.firstName || ''} ${candidate.lastName || ''}`} 
-                                      className="w-10 h-10 rounded-full object-cover"
-                                    />
-                                  ) : (
-                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold text-sm">
+                                  <div className="flex-shrink-0">
+                                    {candidate.profilePictureUrl ? (
+                                      <img 
+                                        src={candidate.profilePictureUrl} 
+                                        alt={`${candidate.firstName || ''} ${candidate.lastName || ''}`} 
+                                        className="w-10 h-10 rounded-full object-cover"
+                                        onError={(e) => {
+                                          e.target.style.display = 'none';
+                                          if (e.target.nextElementSibling) {
+                                            e.target.nextElementSibling.style.display = 'flex';
+                                          }
+                                        }}
+                                      />
+                                    ) : null}
+                                    <div 
+                                      className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold text-sm"
+                                      style={{ display: candidate.profilePictureUrl ? 'none' : 'flex' }}
+                                    >
                                       {candidate.firstName?.charAt(0) || ''}
                                       {candidate.lastName?.charAt(0) || ''}
                                     </div>
-                                  )}
+                                  </div>
                                   <div>
                                     <p className="font-poppins font-medium text-gray-900">
                                       {candidate.firstName || ''} {candidate.lastName || ''}
