@@ -423,9 +423,19 @@ const VoterCard = ({ voter }) => {
     <div className="group p-6 hover:bg-gray-50/50 transition-all duration-200">
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
-          {/* Avatar */}
-          <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-2xl flex items-center justify-center">
-            <UserIcon className="h-6 w-6 text-primary-600" />
+          {/* Avatar with Profile Image */}
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center overflow-hidden">
+            {voter.profilePictureUrl ? (
+              <img 
+                src={voter.profilePictureUrl} 
+                alt={`${voter.firstName} ${voter.lastName}`} 
+                className="w-12 h-12 rounded-2xl object-cover"
+              />
+            ) : (
+              <div className="w-12 h-12 bg-gradient-to-br from-primary-100 to-secondary-100 rounded-2xl flex items-center justify-center">
+                <UserIcon className="h-6 w-6 text-primary-600" />
+              </div>
+            )}
           </div>
 
           {/* Voter Info */}

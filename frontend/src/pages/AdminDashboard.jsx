@@ -17,6 +17,7 @@ import {
   DocumentTextIcon,
   KeyIcon,
   UserIcon,
+  ArrowPathIcon
 } from "@heroicons/react/24/outline";
 import { adminAPI, electionAPI, authAPI } from "../services/api";
 import Header from "../components/common/Header";
@@ -764,10 +765,19 @@ const AdminDashboard = () => {
                             {data.candidates.map((candidate) => (
                               <div key={candidate._id} className="flex items-center justify-between">
                                 <div className="flex items-center space-x-3">
-                                  <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold text-sm">
-                                    {candidate.firstName?.charAt(0) || ''}
-                                    {candidate.lastName?.charAt(0) || ''}
-                                  </div>
+                                  {/* Profile Image or Initials */}
+                                  {candidate.profilePictureUrl ? (
+                                    <img 
+                                      src={candidate.profilePictureUrl} 
+                                      alt={`${candidate.firstName || ''} ${candidate.lastName || ''}`} 
+                                      className="w-10 h-10 rounded-full object-cover"
+                                    />
+                                  ) : (
+                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold text-sm">
+                                      {candidate.firstName?.charAt(0) || ''}
+                                      {candidate.lastName?.charAt(0) || ''}
+                                    </div>
+                                  )}
                                   <div>
                                     <p className="font-poppins font-medium text-gray-900">
                                       {candidate.firstName || ''} {candidate.lastName || ''}
