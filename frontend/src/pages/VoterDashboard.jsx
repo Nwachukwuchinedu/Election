@@ -115,17 +115,42 @@ const VoterDashboard = () => {
       return;
     }
 
+    // Double-check that all positions have selections (should already be enforced by button disabled state)
+    const allPositionsHaveSelection = Object.keys(candidates).length > 0 && 
+      Object.keys(candidates).every(positionName => 
+        selectedCandidates[positionName] !== null && 
+        selectedCandidates[positionName] !== undefined &&
+        selectedCandidates[positionName] !== ""
+      );
+      
+    if (!allPositionsHaveSelection) {
+      setError("Please select a candidate for all positions before submitting.");
+      return;
+    }
+
     setCastingVote(true);
     try {
       // Prepare votes data - one vote per position for the selected candidate
       const votesForAllPositions = {};
-      Object.keys(selectedCandidates).forEach(position => {
-        if (selectedCandidates[position]) {
+      
+      // Ensure we have votes for ALL positions
+      const allPositions = Object.keys(candidates);
+      
+      for (const position of allPositions) {
+        // Check if we have a selected candidate for this position
+        if (selectedCandidates[position] !== null && selectedCandidates[position] !== undefined && selectedCandidates[position] !== "") {
           votesForAllPositions[position] = {
             [selectedCandidates[position]]: 1 // One vote for the selected candidate
           };
+        } else {
+          console.error(`Missing vote for position: ${position}`);
+          throw new Error(`Missing vote for position: ${position}`);
         }
-      });
+      }
+      
+      console.log('Prepared votesForAllPositions:', JSON.stringify(votesForAllPositions, null, 2));
+      console.log('All positions:', Object.keys(candidates));
+      console.log('Selected candidates:', selectedCandidates);
 
       // Cast votes for all positions
       await votesAPI.castVote({
@@ -133,9 +158,9 @@ const VoterDashboard = () => {
       });
 
       // Update voting status to show all positions as voted
-      const allPositions = Object.keys(candidates);
+      const positionsForStatus = Object.keys(candidates);
       setVotingStatus({
-        votedPositions: allPositions,
+        votedPositions: positionsForStatus,
         availablePositions: []
       });
 
@@ -158,9 +183,12 @@ const VoterDashboard = () => {
     totalPositions > 0 ? (votedPositions / totalPositions) * 100 : 0;
 
   // Check if all positions have a selected candidate
-  const allPositionsHaveSelection = Object.values(selectedCandidates).every(
-    candidateId => candidateId !== null && candidateId !== undefined
-  );
+  const allPositionsHaveSelection = Object.keys(candidates).length > 0 && 
+    Object.keys(candidates).every(positionName => 
+      selectedCandidates[positionName] !== null && 
+      selectedCandidates[positionName] !== undefined &&
+      selectedCandidates[positionName] !== ""
+    );
 
   if (loading) return <LoadingSpinner />;
 
