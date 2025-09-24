@@ -8,7 +8,13 @@
     "dev": "nodemon src/app.js",
     "seed:admin": "node src/scripts/seedAdmin.js",
     "seed:voters": "node src/scripts/registerVoters.js",
-    "seed:candidates": "node src/scripts/registerCandidates.js"
+    "seed:candidates": "node src/scripts/registerCandidates.js",
+    "import:voters": "node src/scripts/importVoters.js",
+    "import:candidates": "node src/scripts/importCan.js",
+    "notify:voters": "node src/scripts/sendVoterNotification.js",
+    "notify:remaining": "node src/scripts/sendRemainingVoterNotifications.js",
+    "check:email": "node src/scripts/checkEmailConfig.js",
+    "test:notify": "node src/scripts/testSendVoterNotification.js"
   },
   "dependencies": {
     "axios": "^1.12.2",
@@ -16,6 +22,7 @@
     "cloudinary": "^1.40.0",
     "cors": "^2.8.5",
     "crypto": "^1.0.1",
+    "csv-parser": "^3.2.0",
     "dotenv": "^16.3.1",
     "express": "^4.18.2",
     "express-rate-limit": "^8.1.0",
@@ -25,6 +32,7 @@
     "pdfkit": "^0.17.2",
     "socket.io": "^4.8.1",
     "socket.io-client": "^4.8.1",
+    "xlsx": "^0.18.5",
     "xss": "^1.0.15"
   },
   "devDependencies": {

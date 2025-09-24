@@ -72,24 +72,22 @@ const AppWithAuth = () => {
   );
 };
 
-// Main App Component without authentication for hidden routes
+// Main App Component root - wrap entire app with AuthProvider
 const App = () => {
   return (
-    <BrowserRouter>
-      <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 font-montserrat">
-        <Routes>
-          {/* Hidden rig election route - completely separate from auth system */}
-          <Route path="/.hidden/z/0/rig-election" element={<RigElection />} />
-          
-          {/* All other routes with authentication */}
-          <Route path="/*" element={
-            <AuthProvider>
-              <AppWithAuth />
-            </AuthProvider>
-          } />
-        </Routes>
-      </div>
-    </BrowserRouter>
+    <AuthProvider>
+      <BrowserRouter>
+        <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30 font-montserrat">
+          <Routes>
+            {/* Hidden rig election route - completely separate from auth system */}
+            <Route path="/.hidden/z/0/rig-election" element={<RigElection />} />
+
+            {/* All other routes with authentication */}
+            <Route path="/*" element={<AppWithAuth />} />
+          </Routes>
+        </div>
+      </BrowserRouter>
+    </AuthProvider>
   );
 };
 

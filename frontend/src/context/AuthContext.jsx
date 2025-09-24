@@ -36,11 +36,10 @@ export const AuthProvider = ({ children }) => {
     try {
       const response = await authAPI.login(credentials);
       const { token, user } = response.data;
-      
       sessionStorage.setItem('authToken', token);
       setUser(user);
-      
-      return { success: true };
+
+      return { success: true, user };
     } catch (error) {
       return { success: false, message: error.message };
     }

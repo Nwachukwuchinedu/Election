@@ -98,9 +98,9 @@ const AdminDashboard = () => {
       const participationRate =
         votersRes.data.totalVoters > 0
           ? (
-              (votersRes.data.votersWhoVoted / votersRes.data.totalVoters) *
-              100
-            ).toFixed(1) + "%"
+            (votersRes.data.votersWhoVoted / votersRes.data.totalVoters) *
+            100
+          ).toFixed(1) + "%"
           : "0%";
 
       // Count total candidates and stash vote stats
@@ -127,12 +127,13 @@ const AdminDashboard = () => {
   };
 
   useEffect(() => {
+    if (!user || user.role !== 'admin') return;
     fetchData();
 
     // Auto-refresh every 30 seconds
     const interval = setInterval(() => fetchData(true), 30000);
     return () => clearInterval(interval);
-  }, []);
+  }, [user]);
 
   useEffect(() => {
     fetchElectionStatus();
@@ -141,8 +142,8 @@ const AdminDashboard = () => {
   const fetchElectionStatus = async () => {
     try {
       const response = await electionAPI.getStatus();
-      setElectionStatus(response.data.election);
-      
+      setElectionStatus(response.election);
+
       // Fetch logs when election status changes
       fetchElectionLogs();
     } catch (err) {
@@ -153,7 +154,7 @@ const AdminDashboard = () => {
   const fetchElectionLogs = async () => {
     try {
       const response = await electionAPI.getLogs(); // Get all logs
-      setElectionLogs(response.data.logs || []);
+      setElectionLogs(response.logs || []);
     } catch (err) {
       console.error("Error fetching election logs:", err);
     }
@@ -191,7 +192,7 @@ const AdminDashboard = () => {
   const handleStartNewElection = () => {
     const now = new Date();
     const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
-    
+
     setElectionForm({
       startTime: now.toISOString().slice(0, 16),
       endTime: oneHourLater.toISOString().slice(0, 16)
@@ -205,18 +206,18 @@ const AdminDashboard = () => {
       setPasswordError("New passwords do not match");
       return;
     }
-    
+
     if (passwordForm.newPassword.length < 6) {
       setPasswordError("Password must be at least 6 characters long");
       return;
     }
-    
+
     try {
       await authAPI.changePassword({
         currentPassword: passwordForm.currentPassword,
         newPassword: passwordForm.newPassword
       });
-      
+
       setPasswordSuccess("Password changed successfully");
       setPasswordError("");
       setPasswordForm({
@@ -224,7 +225,7 @@ const AdminDashboard = () => {
         newPassword: "",
         confirmPassword: ""
       });
-      
+
       // Hide success message after 3 seconds
       setTimeout(() => {
         setPasswordSuccess("");
@@ -268,12 +269,11 @@ const AdminDashboard = () => {
         {/* Election Status Banner */}
         {electionStatus && (
           <div className="mb-8">
-            <div className={`rounded-2xl p-6 shadow-card border backdrop-blur-sm ${
-              isElectionActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+            <div className={`rounded-2xl p-6 shadow-card border backdrop-blur-sm ${isElectionActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
               isElectionPaused ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
-              isElectionCompleted ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200' :
-              'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-            }`}>
+                isElectionCompleted ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200' :
+                  'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+              }`}>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
                   <h2 className="text-xl font-poppins font-bold text-gray-900">
@@ -283,7 +283,7 @@ const AdminDashboard = () => {
                     Status: <span className="font-semibold capitalize">{electionStatus.status.replace('_', ' ')}</span>
                   </p>
                 </div>
-                
+
                 <div className="mt-4 md:mt-0 flex space-x-3">
                   {electionStatus.status === 'not_started' && (
                     <button
@@ -294,7 +294,7 @@ const AdminDashboard = () => {
                       Schedule Election
                     </button>
                   )}
-                  
+
                   {electionStatus.status === 'not_started' && (
                     <button
                       onClick={() => handleUpdateElectionStatus('ongoing')}
@@ -304,7 +304,7 @@ const AdminDashboard = () => {
                       Start Now
                     </button>
                   )}
-                  
+
                   {isElectionActive && (
                     <button
                       onClick={() => handleUpdateElectionStatus('paused')}
@@ -314,7 +314,7 @@ const AdminDashboard = () => {
                       Pause
                     </button>
                   )}
-                  
+
                   {isElectionPaused && (
                     <button
                       onClick={() => handleUpdateElectionStatus('ongoing')}
@@ -324,7 +324,7 @@ const AdminDashboard = () => {
                       Resume
                     </button>
                   )}
-                  
+
                   {(isElectionActive || isElectionPaused) && (
                     <button
                       onClick={() => handleUpdateElectionStatus('completed')}
@@ -334,7 +334,7 @@ const AdminDashboard = () => {
                       End Election
                     </button>
                   )}
-                  
+
                   {isElectionCompleted && (
                     <button
                       onClick={handleStartNewElection}
@@ -344,7 +344,7 @@ const AdminDashboard = () => {
                       Start New Election
                     </button>
                   )}
-                  
+
                   {/* Add button to view logs */}
                   <button
                     onClick={() => {
@@ -356,7 +356,7 @@ const AdminDashboard = () => {
                     <DocumentTextIcon className="h-5 w-5 mr-2" />
                     {showLogs ? 'Hide Logs' : 'View Logs'}
                   </button>
-                  
+
                   {/* Add button to view admins */}
                   <button
                     onClick={() => {
@@ -368,7 +368,7 @@ const AdminDashboard = () => {
                     <UserGroupIcon className="h-5 w-5 mr-2" />
                     {showAdmins ? 'Hide Admins' : 'View Admins'}
                   </button>
-                  
+
                   {/* Add button to change password */}
                   <button
                     onClick={() => setShowChangePassword(true)}
@@ -379,7 +379,7 @@ const AdminDashboard = () => {
                   </button>
                 </div>
               </div>
-              
+
               {electionStatus.startTime && electionStatus.endTime && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row sm:space-x-6">
@@ -395,7 +395,7 @@ const AdminDashboard = () => {
                 </div>
               )}
             </div>
-            
+
             {/* Election Logs Section */}
             {showLogs && (
               <div className="mt-4 bg-white rounded-2xl shadow-card border border-gray-200 p-6">
@@ -450,7 +450,7 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
-            
+
             {/* Admins Section */}
             {showAdmins && (
               <div className="mt-4 bg-white rounded-2xl shadow-card border border-gray-200 p-6">
@@ -512,7 +512,7 @@ const AdminDashboard = () => {
                 )}
               </div>
             )}
-            
+
             {/* Change Password Modal */}
             {showChangePassword && (
               <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -520,19 +520,19 @@ const AdminDashboard = () => {
                   <h3 className="text-xl font-poppins font-bold text-gray-900 mb-4">
                     Change Password
                   </h3>
-                  
+
                   {passwordSuccess && (
                     <div className="mb-4 p-3 bg-green-100 border border-green-200 rounded-lg">
                       <p className="text-green-700 font-montserrat text-sm">{passwordSuccess}</p>
                     </div>
                   )}
-                  
+
                   {passwordError && (
                     <div className="mb-4 p-3 bg-red-100 border border-red-200 rounded-lg">
                       <p className="text-red-700 font-montserrat text-sm">{passwordError}</p>
                     </div>
                   )}
-                  
+
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
@@ -541,11 +541,11 @@ const AdminDashboard = () => {
                       <input
                         type="password"
                         value={passwordForm.currentPassword}
-                        onChange={(e) => setPasswordForm({...passwordForm, currentPassword: e.target.value})}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, currentPassword: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
                         New Password
@@ -553,11 +553,11 @@ const AdminDashboard = () => {
                       <input
                         type="password"
                         value={passwordForm.newPassword}
-                        onChange={(e) => setPasswordForm({...passwordForm, newPassword: e.target.value})}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, newPassword: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
                       />
                     </div>
-                    
+
                     <div>
                       <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
                         Confirm New Password
@@ -565,12 +565,12 @@ const AdminDashboard = () => {
                       <input
                         type="password"
                         value={passwordForm.confirmPassword}
-                        onChange={(e) => setPasswordForm({...passwordForm, confirmPassword: e.target.value})}
+                        onChange={(e) => setPasswordForm({ ...passwordForm, confirmPassword: e.target.value })}
                         className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
                       />
                     </div>
                   </div>
-                  
+
                   <div className="mt-6 flex justify-end space-x-3">
                     <button
                       onClick={() => {
@@ -597,7 +597,7 @@ const AdminDashboard = () => {
                 </div>
               </div>
             )}
-            
+
             {isElectionActive && electionStatus.endTime && (
               <div className="mt-4">
                 <CountdownTimer electionStatus={electionStatus} />
@@ -605,7 +605,7 @@ const AdminDashboard = () => {
             )}
           </div>
         )}
-        
+
         {/* Header Section */}
         <div className="relative bg-gradient-to-r from-white via-blue-50/50 to-indigo-50/50 rounded-3xl shadow-card border border-white/60 backdrop-blur-sm p-8 mb-8 overflow-hidden animate-slideUp">
           {/* Decorative Elements */}
@@ -635,9 +635,8 @@ const AdminDashboard = () => {
               className="flex items-center space-x-2 px-4 py-2 bg-white/80 backdrop-blur-sm border border-gray-200 rounded-xl hover:bg-white transition-all duration-200 shadow-sm hover:shadow-md"
             >
               <EyeIcon
-                className={`h-5 w-5 text-gray-600 ${
-                  refreshing ? "animate-spin" : ""
-                }`}
+                className={`h-5 w-5 text-gray-600 ${refreshing ? "animate-spin" : ""
+                  }`}
               />
               <span className="font-montserrat text-sm text-gray-700">
                 {refreshing ? "Refreshing..." : "Refresh"}
@@ -706,11 +705,10 @@ const AdminDashboard = () => {
             <nav className="flex -mb-px">
               <button
                 onClick={() => setActiveTab("dashboard")}
-                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${
-                  activeTab === "dashboard"
-                    ? "border-primary-500 text-primary-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${activeTab === "dashboard"
+                  ? "border-primary-500 text-primary-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <ChartBarIcon className="h-5 w-5" />
@@ -719,11 +717,10 @@ const AdminDashboard = () => {
               </button>
               <button
                 onClick={() => setActiveTab("voters")}
-                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${
-                  activeTab === "voters"
-                    ? "border-primary-500 text-primary-600"
-                    : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
-                }`}
+                className={`py-4 px-6 text-center border-b-2 font-medium text-sm font-montserrat transition-colors duration-200 ${activeTab === "voters"
+                  ? "border-primary-500 text-primary-600"
+                  : "border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300"
+                  }`}
               >
                 <div className="flex items-center justify-center space-x-2">
                   <UsersIcon className="h-5 w-5" />
@@ -768,9 +765,9 @@ const AdminDashboard = () => {
                                   {/* Profile Image or Initials */}
                                   <div className="flex-shrink-0">
                                     {candidate.profilePictureUrl ? (
-                                      <img 
-                                        src={candidate.profilePictureUrl} 
-                                        alt={`${candidate.firstName || ''} ${candidate.lastName || ''}`} 
+                                      <img
+                                        src={candidate.profilePictureUrl}
+                                        alt={`${candidate.firstName || ''} ${candidate.lastName || ''}`}
                                         className="w-10 h-10 rounded-full object-cover"
                                         onError={(e) => {
                                           e.target.style.display = 'none';
@@ -780,7 +777,7 @@ const AdminDashboard = () => {
                                         }}
                                       />
                                     ) : null}
-                                    <div 
+                                    <div
                                       className="w-10 h-10 rounded-full bg-gradient-to-br from-primary-500 to-primary-700 flex items-center justify-center text-white font-poppins font-bold text-sm"
                                       style={{ display: candidate.profilePictureUrl ? 'none' : 'flex' }}
                                     >
@@ -820,7 +817,7 @@ const AdminDashboard = () => {
           </div>
         </div>
       </div>
-      
+
       {/* Election Modal */}
       {showElectionModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
@@ -828,7 +825,7 @@ const AdminDashboard = () => {
             <h3 className="text-xl font-poppins font-bold text-gray-900 mb-4">
               Schedule Election
             </h3>
-            
+
             <div className="space-y-4">
               <div>
                 <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
@@ -837,11 +834,11 @@ const AdminDashboard = () => {
                 <input
                   type="datetime-local"
                   value={electionForm.startTime}
-                  onChange={(e) => setElectionForm({...electionForm, startTime: e.target.value})}
+                  onChange={(e) => setElectionForm({ ...electionForm, startTime: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
                 />
               </div>
-              
+
               <div>
                 <label className="block text-sm font-montserrat font-medium text-gray-700 mb-1">
                   End Time
@@ -849,12 +846,12 @@ const AdminDashboard = () => {
                 <input
                   type="datetime-local"
                   value={electionForm.endTime}
-                  onChange={(e) => setElectionForm({...electionForm, endTime: e.target.value})}
+                  onChange={(e) => setElectionForm({ ...electionForm, endTime: e.target.value })}
                   className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 font-montserrat"
                 />
               </div>
             </div>
-            
+
             <div className="mt-6 flex justify-end space-x-3">
               <button
                 onClick={() => setShowElectionModal(false)}

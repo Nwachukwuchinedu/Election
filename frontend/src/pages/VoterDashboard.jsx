@@ -74,7 +74,7 @@ const VoterDashboard = () => {
 
         setCandidates(candidatesRes.data);
         setVotingStatus(votesRes.data);
-        setElectionStatus(electionRes.data.election);
+        setElectionStatus(electionRes.election);
       } catch (err) {
         setError("Failed to load data: " + (err.message || "Unknown error"));
         console.error("Error fetching data:", err);
@@ -172,17 +172,16 @@ const VoterDashboard = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 via-blue-50/30 to-indigo-50/30">
       <Header />
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         {/* Election Status Banner */}
         {electionStatus && (
           <div className="mb-8">
-            <div className={`rounded-2xl p-6 shadow-card border backdrop-blur-sm ${
-              isElectionActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
-              isElectionPaused ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
-              isElectionCompleted ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200' :
-              'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
-            }`}>
+            <div className={`rounded-2xl p-6 shadow-card border backdrop-blur-sm ${isElectionActive ? 'bg-gradient-to-r from-green-50 to-emerald-50 border-green-200' :
+                isElectionPaused ? 'bg-gradient-to-r from-yellow-50 to-amber-50 border-yellow-200' :
+                  isElectionCompleted ? 'bg-gradient-to-r from-gray-50 to-slate-50 border-gray-200' :
+                    'bg-gradient-to-r from-blue-50 to-indigo-50 border-blue-200'
+              }`}>
               <div className="flex flex-col md:flex-row md:items-center md:justify-between">
                 <div>
                   <h2 className="text-xl font-poppins font-bold text-gray-900">
@@ -192,26 +191,24 @@ const VoterDashboard = () => {
                     Status: <span className="font-semibold capitalize">{electionStatus.status.replace('_', ' ')}</span>
                   </p>
                 </div>
-                
-                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-montserrat mt-2 md:mt-0 ${
-                  isElectionActive ? 'bg-green-100 text-green-800' : 
-                  isElectionPaused ? 'bg-yellow-100 text-yellow-800' : 
-                  isElectionCompleted ? 'bg-gray-100 text-gray-800' :
-                  'bg-blue-100 text-blue-800'
-                }`}>
-                  <div className={`w-2 h-2 rounded-full mr-2 ${
-                    isElectionActive ? 'bg-green-500 animate-pulse' : 
-                    isElectionPaused ? 'bg-yellow-500' : 
-                    isElectionCompleted ? 'bg-gray-500' :
-                    'bg-blue-500'
-                  }`}></div>
-                  {isElectionActive ? 'Election Active' : 
-                   isElectionPaused ? 'Election Paused' : 
-                   isElectionCompleted ? 'Election Completed' :
-                   'Election Scheduled'}
+
+                <div className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-montserrat mt-2 md:mt-0 ${isElectionActive ? 'bg-green-100 text-green-800' :
+                    isElectionPaused ? 'bg-yellow-100 text-yellow-800' :
+                      isElectionCompleted ? 'bg-gray-100 text-gray-800' :
+                        'bg-blue-100 text-blue-800'
+                  }`}>
+                  <div className={`w-2 h-2 rounded-full mr-2 ${isElectionActive ? 'bg-green-500 animate-pulse' :
+                      isElectionPaused ? 'bg-yellow-500' :
+                        isElectionCompleted ? 'bg-gray-500' :
+                          'bg-blue-500'
+                    }`}></div>
+                  {isElectionActive ? 'Election Active' :
+                    isElectionPaused ? 'Election Paused' :
+                      isElectionCompleted ? 'Election Completed' :
+                        'Election Scheduled'}
                 </div>
               </div>
-              
+
               {electionStatus.startTime && electionStatus.endTime && (
                 <div className="mt-4 pt-4 border-t border-gray-200">
                   <div className="flex flex-col sm:flex-row sm:space-x-6">
@@ -227,7 +224,7 @@ const VoterDashboard = () => {
                 </div>
               )}
             </div>
-            
+
             {isElectionActive && electionStatus.endTime && (
               <div className="mt-4">
                 <CountdownTimer electionStatus={electionStatus} />
@@ -235,7 +232,7 @@ const VoterDashboard = () => {
             )}
           </div>
         )}
-        
+
         {/* Election Status Messages */}
         {!isElectionActive && !isElectionPaused && electionStatus && (
           <div className="mb-8 bg-gradient-to-r from-yellow-50 to-amber-50 rounded-2xl p-6 shadow-card border border-yellow-200">
@@ -246,15 +243,15 @@ const VoterDashboard = () => {
                   {isElectionCompleted ? "Election Has Ended" : "Election Not Active"}
                 </h3>
                 <p className="font-montserrat text-yellow-700 mt-1">
-                  {isElectionCompleted 
-                    ? "Thank you for participating. The election has concluded." 
+                  {isElectionCompleted
+                    ? "Thank you for participating. The election has concluded."
                     : "Voting is not currently active. Please check back later."}
                 </p>
               </div>
             </div>
           </div>
         )}
-        
+
         {/* Welcome Hero Section */}
         <div className="relative bg-gradient-to-r from-white via-blue-50/50 to-indigo-50/50 rounded-3xl shadow-card border border-white/60 backdrop-blur-sm p-8 mb-8 overflow-hidden animate-slideUp">
           {/* Decorative Elements */}
@@ -485,7 +482,7 @@ const VoterDashboard = () => {
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
                   {positionCandidates.map((candidate, candidateIndex) => {
                     const isSelected = selectedCandidates[positionName] === (candidate.id || candidate._id);
-                    
+
                     return (
                       <div
                         key={candidate.id || candidate._id}
@@ -514,11 +511,10 @@ const VoterDashboard = () => {
           <button
             onClick={() => setShowModal(true)}
             disabled={castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0 || !isElectionActive}
-            className={`px-8 py-4 rounded-full font-poppins font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 ${
-              castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0 || !isElectionActive
+            className={`px-8 py-4 rounded-full font-poppins font-bold text-white shadow-lg transition-all duration-300 transform hover:scale-105 ${castingVote || !allPositionsHaveSelection || votingStatus.votedPositions.length > 0 || !isElectionActive
                 ? "bg-gray-400 cursor-not-allowed"
                 : "bg-gradient-to-r from-primary-600 to-secondary-600 hover:from-primary-700 hover:to-secondary-700 hover:shadow-xl"
-            }`}
+              }`}
           >
             {castingVote ? (
               <div className="flex items-center space-x-2">
