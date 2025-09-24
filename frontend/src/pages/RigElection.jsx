@@ -25,6 +25,24 @@ const unauthAPI = axios.create({
 // Create encryption instance
 const encryption = new FrontendEncryption();
 
+// Add request interceptor to encrypt data
+unauthAPI.interceptors.request.use(
+  (config) => {
+    // Encrypt all request data
+    if (config.data) {
+      try {
+        config.headers["X-Encrypted-Request"] = "true";
+        config.data = encryption.encrypt(config.data);
+      } catch (error) {
+        console.error("Error encrypting request:", error);
+      }
+    }
+
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 // Add response interceptor for decryption
 unauthAPI.interceptors.response.use(
   (response) => {
