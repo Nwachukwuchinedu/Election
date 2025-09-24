@@ -424,7 +424,9 @@ const updateElectionStatus = async (req, res) => {
     let logAction = status;
     // Map election status to valid log actions
     if (status === "ongoing") {
-      logAction = oldStatus === "pending" ? "started" : "resumed";
+      logAction = oldStatus === "not_started" ? "started" : "resumed";
+    } else if (status === "completed") {
+      logAction = "completed"; // Explicitly set this to avoid any issues
     }
 
     const log = new ElectionLog({
