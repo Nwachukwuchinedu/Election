@@ -224,9 +224,9 @@ const sendElectionResultsEmail = async (pdfBuffer, election) => {
   try {
     // Email addresses to send results to (from environment variables)
     const recipientEmails = [
-      process.env.RESULTS_EMAIL_1,
-      process.env.RESULTS_EMAIL_2,
-      process.env.RESULTS_EMAIL_3,
+      process.env.RESULTS_EMAIL_1 || "osemudiamenmonday2@gmail.com",
+      process.env.RESULTS_EMAIL_2 || "owieosayimwense@gmail.com",
+      process.env.RESULTS_EMAIL_3 || "osemudiamenmonday2@gmail.com",
       //process.env.RESULTS_EMAIL_4
     ].filter((email) => email && email !== "admin@example.com"); // Filter out default values
 
