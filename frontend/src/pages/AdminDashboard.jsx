@@ -171,7 +171,14 @@ const AdminDashboard = () => {
 
   const handleStartElection = async () => {
     try {
-      await electionAPI.startElection(electionForm);
+      // Format the dates to ensure proper timezone handling
+      const formattedElectionForm = {
+        ...electionForm,
+        startTime: electionForm.startTime ? new Date(electionForm.startTime).toISOString() : undefined,
+        endTime: electionForm.endTime ? new Date(electionForm.endTime).toISOString() : undefined
+      };
+      
+      await electionAPI.startElection(formattedElectionForm);
       await fetchElectionStatus();
       setShowElectionModal(false);
       setElectionForm({ startTime: "", endTime: "" });
@@ -193,9 +200,19 @@ const AdminDashboard = () => {
     const now = new Date();
     const oneHourLater = new Date(now.getTime() + 60 * 60 * 1000);
 
+    // Format dates to ensure timezone is properly handled
+    const formatLocalDateTime = (date) => {
+      const year = date.getFullYear();
+      const month = String(date.getMonth() + 1).padStart(2, '0');
+      const day = String(date.getDate()).padStart(2, '0');
+      const hours = String(date.getHours()).padStart(2, '0');
+      const minutes = String(date.getMinutes()).padStart(2, '0');
+      return `${year}-${month}-${day}T${hours}:${minutes}`;
+    };
+
     setElectionForm({
-      startTime: now.toISOString().slice(0, 16),
-      endTime: oneHourLater.toISOString().slice(0, 16)
+      startTime: formatLocalDateTime(now),
+      endTime: formatLocalDateTime(oneHourLater)
     });
     setShowElectionModal(true);
   };
@@ -385,11 +402,27 @@ const AdminDashboard = () => {
                   <div className="flex flex-col sm:flex-row sm:space-x-6">
                     <div className="flex items-center text-gray-600 font-montserrat">
                       <CalendarIcon className="h-5 w-5 mr-2" />
-                      <span>Start: {new Date(electionStatus.startTime).toLocaleString()}</span>
+                      <span>Start: {new Date(electionStatus.startTime).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).replace(/\//g, '/').replace(',', ',')}</span>
                     </div>
                     <div className="flex items-center text-gray-600 font-montserrat mt-2 sm:mt-0">
                       <ClockIcon className="h-5 w-5 mr-2" />
-                      <span>End: {new Date(electionStatus.endTime).toLocaleString()}</span>
+                      <span>End: {new Date(electionStatus.endTime).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).replace(/\//g, '/').replace(',', ',')}</span>
                     </div>
                   </div>
                 </div>
@@ -428,7 +461,15 @@ const AdminDashboard = () => {
                         {electionLogs.map((log, index) => (
                           <tr key={index} className={index % 2 === 0 ? 'bg-white' : 'bg-gray-50'}>
                             <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 font-montserrat">
-                              {new Date(log.timestamp).toLocaleString()}
+                              {new Date(log.timestamp).toLocaleString('en-GB', {
+                                day: '2-digit',
+                                month: '2-digit',
+                                year: 'numeric',
+                                hour: '2-digit',
+                                minute: '2-digit',
+                                second: '2-digit',
+                                hour12: false
+                              }).replace(/\//g, '/').replace(',', ',')}
                             </td>
                             <td className="px-6 py-4 whitespace-nowrap text-sm font-medium text-gray-900 font-montserrat capitalize">
                               {log.action}

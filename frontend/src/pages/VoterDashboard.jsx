@@ -242,11 +242,27 @@ const VoterDashboard = () => {
                   <div className="flex flex-col sm:flex-row sm:space-x-6">
                     <div className="flex items-center text-gray-600 font-montserrat">
                       <CalendarIcon className="h-5 w-5 mr-2" />
-                      <span>Start: {new Date(electionStatus.startTime).toLocaleString()}</span>
+                      <span>Start: {new Date(electionStatus.startTime).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).replace(/\//g, '/').replace(',', ',')}</span>
                     </div>
                     <div className="flex items-center text-gray-600 font-montserrat mt-2 sm:mt-0">
                       <ClockIcon className="h-5 w-5 mr-2" />
-                      <span>End: {new Date(electionStatus.endTime).toLocaleString()}</span>
+                      <span>End: {new Date(electionStatus.endTime).toLocaleString('en-GB', {
+                        day: '2-digit',
+                        month: '2-digit',
+                        year: 'numeric',
+                        hour: '2-digit',
+                        minute: '2-digit',
+                        second: '2-digit',
+                        hour12: false
+                      }).replace(/\//g, '/').replace(',', ',')}</span>
                     </div>
                   </div>
                 </div>
