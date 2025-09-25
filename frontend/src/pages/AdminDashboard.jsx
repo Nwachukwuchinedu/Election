@@ -64,7 +64,8 @@ const AdminDashboard = () => {
 
   useEffect(() => {
     // Initialize socket connection
-    const newSocket = io("http://localhost:5000");
+    // Change this to your Render server URL
+    const newSocket = io("https://election-p1lx.onrender.com");
     setSocket(newSocket);
 
     // Listen for election status updates
