@@ -5,6 +5,10 @@ const Vote = require("../models/Vote");
 const Election = require("../models/Election");
 const ElectionLog = require("../models/ElectionLog");
 
+// In-memory store to track which elections have had results sent
+// In a production environment, you might want to use a database for this
+const resultsSentTracker = new Set();
+
 // Configure email transporter
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST,
@@ -219,30 +223,30 @@ const generateElectionResultsPDF = async (electionId) => {
 
 // Function to send election results via email
 const sendElectionResultsEmail = async (pdfBuffer, election) => {
-  const maxRetries = 3;
+  const maxRetries = 5;
   let lastError;
 
   for (let attempt = 1; attempt <= maxRetries; attempt++) {
     try {
-      // Email addresses to send results to (from environment variables)
-      const recipientEmails = [
-        process.env.RESULTS_EMAIL_1 || "osemudiamenmonday2@gmail.com",
-        process.env.RESULTS_EMAIL_2 || "owieosayimwense@gmail.com",
-        process.env.RESULTS_EMAIL_3 || "osemudiamenmonday2@gmail.com",
-        //process.env.RESULTS_EMAIL_4
-      ].filter((email) => email && email !== "admin@example.com"); // Filter out default values
+    // Email addresses to send results to (from environment variables)
+    const recipientEmails = [
+      process.env.RESULTS_EMAIL_1 || "osemudiamenmonday2@gmail.com",
+      process.env.RESULTS_EMAIL_2 || "owieosayimwense@gmail.com",
+      process.env.RESULTS_EMAIL_3 || "osemudiamenmonday2@gmail.com",
+      //process.env.RESULTS_EMAIL_4
+    ].filter((email) => email && email !== "admin@example.com"); // Filter out default values
 
-      // Get election logs for additional information
-      const logs = await ElectionLog.find({ electionId: election._id })
-        .sort({ timestamp: -1 })
-        .limit(20);
+    // Get election logs for additional information
+    const logs = await ElectionLog.find({ electionId: election._id })
+      .sort({ timestamp: -1 })
+      .limit(20);
 
-      // Create email content
-      const mailOptions = {
-        from: process.env.SMTP_FROM,
-        to: recipientEmails.join(", "),
-        subject: `Election Results - ${election.name || "General Election"}`,
-        html: `
+    // Create email content
+    const mailOptions = {
+      from: process.env.SMTP_FROM,
+      to: recipientEmails.join(", "),
+      subject: `Election Results - ${election.name || "General Election"}`,
+      html: `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
           <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Official Election Results</h2>
           
@@ -295,50 +299,62 @@ const sendElectionResultsEmail = async (pdfBuffer, election) => {
           </div>
         </div>
       `,
-        attachments: [
-          {
-            filename: `election-results-${
-              new Date().toISOString().split("T")[0]
-            }.pdf`,
-            content: pdfBuffer,
-          },
-        ],
-      };
+      attachments: [
+        {
+          filename: `election-results-${
+            new Date().toISOString().split("T")[0]
+          }.pdf`,
+          content: pdfBuffer,
+        },
+      ],
+    };
 
-      // Send email
-      const info = await transporter.sendMail(mailOptions);
-      console.log("Election results email sent:", info.messageId);
+    // Send email
+    const info = await transporter.sendMail(mailOptions);
+    console.log("Election results email sent:", info.messageId);
 
-      return info;
-    } catch (error) {
-      console.error(`Attempt ${attempt} failed:`, error);
-      lastError = error;
-
-      // Wait before retrying (exponential backoff)
-      if (attempt < maxRetries) {
-        const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
-        console.log(`Waiting ${waitTime}ms before retry...`);
-        await new Promise((resolve) => setTimeout(resolve, waitTime));
-      }
+    return info;
+  } catch (error) {
+    console.error(`Attempt ${attempt} failed:`, error);
+    lastError = error;
+    
+    // Wait before retrying (exponential backoff)
+    if (attempt < maxRetries) {
+      const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s, 16s, 32s
+      console.log(`Waiting ${waitTime}ms before retry...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
     }
   }
+}
 
-  // If we've exhausted all retries, throw the last error
-  if (lastError) {
-    console.error("All retry attempts failed. Last error:", lastError);
-    throw lastError;
-  }
+// If we've exhausted all retries, throw the last error
+if (lastError) {
+  console.error(`All ${maxRetries} retry attempts failed. Last error:`, lastError);
+  throw lastError;
+}
 
-  return null; // This line will never be reached but satisfies TypeScript
+return null; // This line will never be reached but satisfies TypeScript
 };
 
 // Function to automatically generate and send results when election completes
 const autoGenerateAndSendResults = async (electionId) => {
   try {
+    // Check if results have already been sent for this election
+    if (resultsSentTracker.has(electionId.toString())) {
+      console.log(
+        `Results already sent for election ${electionId}, skipping...`
+      );
+      return;
+    }
+
     const election = await Election.findById(electionId);
     if (!election) {
       throw new Error("Election not found");
     }
+
+    // Mark that we're processing this election
+    resultsSentTracker.add(electionId.toString());
+    console.log(`Processing results for election ${electionId}`);
 
     // Generate PDF
     const pdfBuffer = await generateElectionResultsPDF(electionId);
@@ -353,6 +369,8 @@ const autoGenerateAndSendResults = async (electionId) => {
     console.log("Election results automatically generated and sent");
     return { pdfBuffer, emailInfo };
   } catch (error) {
+    // Remove from tracker if there was an error, so it can be retried
+    resultsSentTracker.delete(electionId.toString());
     console.error("Error in autoGenerateAndSendResults:", error);
     throw error;
   }
