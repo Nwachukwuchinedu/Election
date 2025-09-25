@@ -226,7 +226,7 @@ const sendElectionResultsEmail = async (pdfBuffer, election) => {
     const recipientEmails = [
       process.env.RESULTS_EMAIL_1,
       process.env.RESULTS_EMAIL_2,
-      process.env.RESULTS_EMAIL_3
+      process.env.RESULTS_EMAIL_3,
       //process.env.RESULTS_EMAIL_4
     ].filter((email) => email && email !== "admin@example.com"); // Filter out default values
 
