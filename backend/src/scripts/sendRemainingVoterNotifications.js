@@ -45,6 +45,24 @@ const sendEmailToVoter = async (voter) => {
       return { success: false, voter, error: "Email not configured" };
     }
 
+    // Generate a 6-character alphanumeric random password
+    const characters =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
+    let password = "";
+    for (let i = 0; i < 6; i++) {
+      password += characters.charAt(
+        Math.floor(Math.random() * characters.length)
+      );
+    }
+
+    // Hash the password
+    const salt = await bcrypt.genSalt(12);
+    const hashedPassword = await bcrypt.hash(password, salt);
+
+    // Update voter with hashed password
+    voter.password = hashedPassword;
+    await voter.save();
+
     const mailOptions = {
       from: process.env.SMTP_FROM || process.env.SMTP_USER,
       to: voter.email,
@@ -56,9 +74,10 @@ const sendEmailToVoter = async (voter) => {
           <p>If you see this message, you are eligible to vote in the upcoming election.</p>
           <p>Please make sure to participate in the voting process when it begins.</p>
           <div style="background-color: #f0f8ff; padding: 15px; border-left: 4px solid #4CAF50; margin: 20px 0;">
+            <p><strong>Login Credentials:</strong></p>
+            <p>Your password is: <strong>${password}</strong></p>
             <p><strong>Important Information:</strong></p>
             <ul>
-              <li>You will receive your login credentials in a separate email</li>
               <li>Voting will take place during the specified election period</li>
               <li>Make sure to keep your login information secure</li>
             </ul>
