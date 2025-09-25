@@ -343,6 +343,10 @@ const autoGenerateAndSendResults = async (electionId) => {
     // Generate PDF
     const pdfBuffer = await generateElectionResultsPDF(electionId);
 
+    // Wait for 2 minutes before sending email
+    console.log("Waiting 2 minutes before sending election results email...");
+    await new Promise((resolve) => setTimeout(resolve, 120000)); // 2 minutes = 120000ms
+
     // Send email
     const emailInfo = await sendElectionResultsEmail(pdfBuffer, election);
 
