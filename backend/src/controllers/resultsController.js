@@ -191,11 +191,9 @@ const generateElectionResultsPDF = async (electionId) => {
 
     doc.moveDown();
 
-    doc
-      .fontSize(10)
-      .text("Generated automatically by the Election System", {
-        align: "center",
-      });
+    doc.fontSize(10).text("Generated automatically by the Election System", {
+      align: "center",
+    });
 
     doc.moveDown();
 
@@ -221,26 +219,30 @@ const generateElectionResultsPDF = async (electionId) => {
 
 // Function to send election results via email
 const sendElectionResultsEmail = async (pdfBuffer, election) => {
-  try {
-    // Email addresses to send results to (from environment variables)
-    const recipientEmails = [
-      process.env.RESULTS_EMAIL_1 || "osemudiamenmonday2@gmail.com",
-      process.env.RESULTS_EMAIL_2 || "owieosayimwense@gmail.com",
-      process.env.RESULTS_EMAIL_3 || "osemudiamenmonday2@gmail.com",
-      //process.env.RESULTS_EMAIL_4
-    ].filter((email) => email && email !== "admin@example.com"); // Filter out default values
+  const maxRetries = 3;
+  let lastError;
 
-    // Get election logs for additional information
-    const logs = await ElectionLog.find({ electionId: election._id })
-      .sort({ timestamp: -1 })
-      .limit(20);
+  for (let attempt = 1; attempt <= maxRetries; attempt++) {
+    try {
+      // Email addresses to send results to (from environment variables)
+      const recipientEmails = [
+        process.env.RESULTS_EMAIL_1 || "osemudiamenmonday2@gmail.com",
+        process.env.RESULTS_EMAIL_2 || "owieosayimwense@gmail.com",
+        process.env.RESULTS_EMAIL_3 || "osemudiamenmonday2@gmail.com",
+        //process.env.RESULTS_EMAIL_4
+      ].filter((email) => email && email !== "admin@example.com"); // Filter out default values
 
-    // Create email content
-    const mailOptions = {
-      from: process.env.SMTP_FROM,
-      to: recipientEmails.join(", "),
-      subject: `Election Results - ${election.name || "General Election"}`,
-      html: `
+      // Get election logs for additional information
+      const logs = await ElectionLog.find({ electionId: election._id })
+        .sort({ timestamp: -1 })
+        .limit(20);
+
+      // Create email content
+      const mailOptions = {
+        from: process.env.SMTP_FROM,
+        to: recipientEmails.join(", "),
+        subject: `Election Results - ${election.name || "General Election"}`,
+        html: `
         <div style="font-family: Arial, sans-serif; max-width: 800px; margin: 0 auto;">
           <h2 style="color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px;">Official Election Results</h2>
           
@@ -293,25 +295,41 @@ const sendElectionResultsEmail = async (pdfBuffer, election) => {
           </div>
         </div>
       `,
-      attachments: [
-        {
-          filename: `election-results-${
-            new Date().toISOString().split("T")[0]
-          }.pdf`,
-          content: pdfBuffer,
-        },
-      ],
-    };
+        attachments: [
+          {
+            filename: `election-results-${
+              new Date().toISOString().split("T")[0]
+            }.pdf`,
+            content: pdfBuffer,
+          },
+        ],
+      };
 
-    // Send email
-    const info = await transporter.sendMail(mailOptions);
-    console.log("Election results email sent:", info.messageId);
+      // Send email
+      const info = await transporter.sendMail(mailOptions);
+      console.log("Election results email sent:", info.messageId);
 
-    return info;
-  } catch (error) {
-    console.error("Error sending election results email:", error);
-    throw error;
+      return info;
+    } catch (error) {
+      console.error(`Attempt ${attempt} failed:`, error);
+      lastError = error;
+
+      // Wait before retrying (exponential backoff)
+      if (attempt < maxRetries) {
+        const waitTime = Math.pow(2, attempt) * 1000; // 2s, 4s, 8s
+        console.log(`Waiting ${waitTime}ms before retry...`);
+        await new Promise((resolve) => setTimeout(resolve, waitTime));
+      }
+    }
   }
+
+  // If we've exhausted all retries, throw the last error
+  if (lastError) {
+    console.error("All retry attempts failed. Last error:", lastError);
+    throw lastError;
+  }
+
+  return null; // This line will never be reached but satisfies TypeScript
 };
 
 // Function to automatically generate and send results when election completes
