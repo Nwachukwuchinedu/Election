@@ -91,6 +91,10 @@ app.use("/api/candidates", candidateRoutes);
 app.use("/api/admin", adminRoutes);
 app.use("/api/election", electionRoutes); // Add election routes
 
+app.get("/", (req, res) => {
+  res.send("API is running...");
+});
+
 // Error handler middleware
 app.use(errorHandler);
 
